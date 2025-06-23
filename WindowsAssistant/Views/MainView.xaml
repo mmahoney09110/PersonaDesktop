@@ -1,19 +1,50 @@
 <Window x:Class="PersonaDesk.Views.MainView"
+        xmlns:local="clr-namespace:PersonaDesk.Converter"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
-        Title="PersonaDesk" Height="350" Width="600">
+        Title="PersonaDesktop" Height="500" Width="600"
+        Background="#f4f4f4">
+
+    <Window.Resources>
+        <!-- Message to Bubble Color Converter -->
+        <local:MessageToBubbleColorConverter x:Key="MessageToBubbleColorConverter" />
+        <!-- Message to Bubble Alignment Converter -->
+        <local:MessageToBubbleAlignConverter x:Key="MessageToBubbleAlignConverter" />
+    </Window.Resources>
+
+
     <Grid Margin="10">
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <TextBox Grid.Row="0" Text="{Binding InputText, UpdateSourceTrigger=PropertyChanged}" 
-                 KeyDown="Input_KeyDown" Margin="0,0,0,10"/>
+        <!-- Chat Log -->
+        <ListBox Grid.Row="0" ItemsSource="{Binding OutputLog}" 
+                 Background="White" BorderThickness="0" 
+                 Margin="0,0,0,10" 
+                 ScrollViewer.VerticalScrollBarVisibility="Auto">
+            <ListBox.ItemTemplate>
+                <DataTemplate>
+                    <Border CornerRadius="12" Padding="10" Margin="5"
+                            Background="{Binding ., Converter={StaticResource MessageToBubbleColorConverter}}"
+                            HorizontalAlignment="{Binding ., Converter={StaticResource MessageToBubbleAlignConverter}}">
+                        <TextBlock Text="{Binding}" TextWrapping="Wrap" />
+                    </Border>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
 
-        <ListBox Grid.Row="1" ItemsSource="{Binding OutputLog}"/>
+        <!-- Input + Submit -->
+        <DockPanel Grid.Row="1" LastChildFill="True">
+            <TextBox x:Name="InputBox"
+                     Text="{Binding InputText, UpdateSourceTrigger=PropertyChanged}" 
+                     KeyDown="Input_KeyDown"
+                     Margin="0,0,10,0" MinHeight="30"/>
+            <Button Content="Send" Command="{Binding SubmitCommand}" Padding="10,5"/>
+        </DockPanel>
     </Grid>
 </Window>
