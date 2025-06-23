@@ -15,5 +15,9 @@ def embed_text(req: TextRequest):
     embedding = model.encode(req.text)
     return {"embedding": embedding.tolist()}
 
+@app.get("/status")
+def status():
+    return {"ready": True}
+
 if __name__ == "__main__":
     uvicorn.run(app, host="127.0.0.1", port=8000)

@@ -33,7 +33,7 @@ namespace PersonaDesk.Services
         private InteractionState _state = InteractionState.None;
         private string _pendingFilePath = null;
 
-        private const double THRESHOLD = 0.50;
+        private const double THRESHOLD = 0.45;
 
         public async Task<string> HandleCommand(string input)
         {
@@ -305,6 +305,12 @@ namespace PersonaDesk.Services
                 { "Pictures", Environment.SpecialFolder.MyPictures },
                 { "Music", Environment.SpecialFolder.MyMusic },
                 { "Videos", Environment.SpecialFolder.MyVideos },
+                { "AppData", Environment.SpecialFolder.ApplicationData },
+                { "CommonDocuments", Environment.SpecialFolder.CommonDocuments },
+                { "CommonPictures", Environment.SpecialFolder.CommonPictures },
+                { "CommonMusic", Environment.SpecialFolder.CommonMusic },
+                { "CommonVideos", Environment.SpecialFolder.CommonVideos },
+                { "UserProfile", Environment.SpecialFolder.UserProfile }, // UserProfile is a common base
                 { "Downloads", Environment.SpecialFolder.UserProfile } // Downloads is inside UserProfile
             };
 
@@ -326,6 +332,7 @@ namespace PersonaDesk.Services
                 Environment.GetFolderPath(Environment.SpecialFolder.MyPictures),
                 Environment.GetFolderPath(Environment.SpecialFolder.MyMusic),
                 Environment.GetFolderPath(Environment.SpecialFolder.MyVideos),
+                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
                 Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads"),
                 Environment.GetFolderPath(Environment.SpecialFolder.CommonDocuments),
                 Environment.GetFolderPath(Environment.SpecialFolder.CommonPictures),

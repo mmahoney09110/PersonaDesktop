@@ -1,4 +1,7 @@
-﻿using System;
+﻿using Hardcodet.Wpf.TaskbarNotification;
+using PersonaDesk.ViewModels;
+using System;
+using System.Net.Http;
 using System.Runtime.InteropServices;
 using System.Windows;
 
@@ -9,13 +12,16 @@ namespace PersonaDesk
         public static EmbeddingServiceHost EmbeddingService { get; private set; }
         [DllImport("kernel32.dll", SetLastError = true)]
         private static extern bool AllocConsole();
+        public static TaskbarIcon TrayIcon { get; private set; }
+
         protected override void OnStartup(StartupEventArgs e)
         {
             AllocConsole();
-            Console.WriteLine("Console allocated for debugging.");
-            Console.WriteLine("Console is working.");
 
             base.OnStartup(e);
+
+            TrayIcon = (TaskbarIcon)FindResource("TrayIcon");
+            TrayIcon.DataContext = new MainViewModel();
 
             try
             {
@@ -25,18 +31,47 @@ namespace PersonaDesk
                 Console.WriteLine($"Starting embedding service: {pythonExe} {scriptPath}");
                 EmbeddingService = new EmbeddingServiceHost(pythonExe, scriptPath);
                 EmbeddingService.Start();
-                Console.WriteLine("Embedding service started successfully.");
+                Console.WriteLine("Embedding service startinf successfully...");
             }
             catch (Exception ex)
             {
                 Console.Error.WriteLine($"Failed to start embedding service: {ex}");
-                // You might want to show a message box or log this somewhere more visible
+                MessageBox.Show($"Failed to start Assistant service: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                Environment.Exit(1);
             }
+        }
+
+        public static void InitializePythonServer()
+        {
+            // Wait until the /status endpoint returns 200
+            using var httpClient = new HttpClient();
+            const string statusUrl = "http://localhost:8000/status";
+            const int maxRetries = 60;
+            const int delayMs = 500;
+
+            for (int i = 0; i < maxRetries; i++)
+            {
+                try
+                {
+                    var response = httpClient.GetAsync(statusUrl).Result;
+                    if (response.IsSuccessStatusCode)
+                        return; // Ready!
+                }
+                catch
+                {
+                    // Ignore connection errors during warmup
+                }
+
+                Thread.Sleep(delayMs);
+            }
+
+            throw new Exception("Python server failed to start in time.");
         }
 
         protected override void OnExit(ExitEventArgs e)
         {
             Console.WriteLine("Stopping embedding service...");
+            TrayIcon.Dispose();
             EmbeddingService?.Dispose();
             Console.WriteLine("Embedding service stopped.");
             base.OnExit(e);
