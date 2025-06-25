@@ -30,11 +30,22 @@
   </ItemGroup>
 
 	<ItemGroup>
-		<None Update="Models\all-MiniLM-L6-v2\*">
-			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		<None Update="Models\all-MiniLM-L6-v2\1_Pooling\*">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
 		</None>
 	</ItemGroup>
 
+	<ItemGroup>
+		<None Update="Models\all-MiniLM-L6-v2\2_Normalize\*">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
+	</ItemGroup>
+	
+	<ItemGroup>
+		<None Update="Models\all-MiniLM-L6-v2\*">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
+	</ItemGroup>
 
 	<ItemGroup>
     <PackageReference Include="Hardcodet.NotifyIcon.Wpf" Version="2.0.1" />
