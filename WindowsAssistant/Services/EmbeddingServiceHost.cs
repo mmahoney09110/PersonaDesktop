@@ -1,4 +1,5 @@
-﻿using System;
+﻿using PersonaDesk.Views;
+using System;
 using System.Diagnostics;
 using System.IO;
 using System.Net.Http;
@@ -6,6 +7,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
+using System.Windows;
 
 public class EmbeddingServiceHost : IDisposable
 {
@@ -71,6 +73,9 @@ public class EmbeddingServiceHost : IDisposable
     private void EnsureVirtualEnv()
     {
         Console.WriteLine($"[Host] Running setup script: {_setupScript}");
+        var dialog = new QuickDialog("Checking and loading dependencies. This may take a few moments...");
+        dialog.Owner = Application.Current.MainWindow; // Makes it center over your main app
+        dialog.Show();
 
         var startInfo = new ProcessStartInfo
         {
@@ -103,6 +108,7 @@ public class EmbeddingServiceHost : IDisposable
             setupProcess.WaitForExit();
 
             Console.WriteLine($"[Host] Setup script exited with code: {setupProcess.ExitCode}");
+            dialog.Close();
 
             if (setupProcess.ExitCode != 0)
                 throw new Exception("Failed to set up Python environment. See logs for details.");
