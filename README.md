@@ -45,11 +45,11 @@ Unlike typical utilities, Windows Assistant gives your assistant a *soul*, you c
 
 | Area | Tools |
 |------|-------|
-| UI | C# WPF (.NET 8) |
-| Command Parser | Custom intent matcher w/ fallback engine |
+| UI | C# WPF (.NET 9) |
+| Command Parser | Custom intent matcher |
 | Personality Config | JSON-driven assistant templates |
 | File Ops | `System.IO`, Windows Shell Interop |
-| Volume Control | `CoreAudioApi` or `NAudio` |
+| Volume Control | `NAudio` |
 | Hotkeys | Global keyboard listener (TBD) |
 
 ---
@@ -117,7 +117,7 @@ Unlike typical utilities, Windows Assistant gives your assistant a *soul*, you c
 
 ## Why This Project?
 
-Windows Assistant **daily utility** with **custom personality**. It’s a smart desktop companion that reflects your style: helpful, sarcastic, robotic, or friendly. I want to add flair to the classic assitant and bring something special to your PC helper. For me its also a portfolio builder that showcases my skills in:
+Persona Desktop combines **daily utility** with **custom personality**. It’s a smart desktop companion that reflects your style: helpful, sarcastic, robotic, or friendly. I want to add flair to the classic assitant and bring something special to a PC helper. For me its also a portfolio builder that showcases my skills in:
 - Desktop UI/UX
 - OS-level command handling
 - AI integration
