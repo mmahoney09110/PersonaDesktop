@@ -41,7 +41,11 @@ public class SettingsViewModel : INotifyPropertyChanged
         {
             SettingsService.SaveSettings(_settings);
             var dialog = new QuickDialog("Settings saved!");
-            dialog.Owner = Application.Current.MainWindow; // Makes it center over your main app
+
+            var mainWindow = Application.Current.MainWindow;
+            HotkeyService.RegisterHotkey(mainWindow, _settings.Hotkey);
+
+            dialog.Owner = mainWindow; // Makes it center over your main app
             dialog.ShowDialog();
         }
         catch (Exception ex)

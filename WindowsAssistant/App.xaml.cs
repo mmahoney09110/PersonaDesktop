@@ -3,6 +3,7 @@ using PersonaDesk.ViewModels;
 using PersonaDesk.Views;
 using System;
 using System.Net.Http;
+using System.Runtime;
 using System.Runtime.InteropServices;
 using System.Windows;
 
@@ -14,6 +15,8 @@ namespace PersonaDesk
         [DllImport("kernel32.dll", SetLastError = true)]
         private static extern bool AllocConsole();
         public static TaskbarIcon TrayIcon { get; private set; }
+
+        private readonly SettingsModel _settings = SettingsService.LoadSettings();
 
         protected override void OnStartup(StartupEventArgs e)
         {
@@ -77,6 +80,7 @@ namespace PersonaDesk
             Console.WriteLine("Stopping embedding service...");
             TrayIcon.Dispose();
             EmbeddingService?.Dispose();
+            HotkeyService.UnregisterHotkey(Application.Current.MainWindow);
             Console.WriteLine("Embedding service stopped.");
             base.OnExit(e);
         }

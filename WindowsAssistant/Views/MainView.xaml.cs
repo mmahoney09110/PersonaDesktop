@@ -1,6 +1,7 @@
 using System.Windows;
 using System.Windows.Input;
 using System.Collections.Specialized;
+using PersonaDesk.ViewModels;
 
 namespace PersonaDesk.Views
 {
@@ -63,5 +64,20 @@ namespace PersonaDesk.Views
                 App.TrayIcon.Visibility = Visibility.Visible;
             }
         }
+
+        private void MainWindow_Loaded(object sender, RoutedEventArgs e)
+        {
+            var settings = SettingsService.LoadSettings();
+            HotkeyService.RegisterHotkey(this, settings.Hotkey);
+            HotkeyService.AttachHotkeyListener(this, () =>
+            {
+                Dispatcher.Invoke(() =>
+                {
+                    var vm = DataContext as MainViewModel;
+                    vm?.ShowMainWindowCommand.Execute(null);
+                });
+            });
+        }
+
     }
 }

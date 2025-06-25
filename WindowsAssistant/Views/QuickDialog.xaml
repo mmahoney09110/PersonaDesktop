@@ -5,7 +5,8 @@
         AllowsTransparency="True"
         Background="Transparent"
         ResizeMode="NoResize"
-        Width="300" Height="150"
+        Width="300"
+        SizeToContent="Height"
         ShowInTaskbar="False"
         WindowStartupLocation="CenterOwner">
     <Border Background="#2E2E3F" 
@@ -14,12 +15,13 @@
             BorderBrush="#444" 
             BorderThickness="1"
             Effect="{DynamicResource DropShadowEffect}">
-        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" >
+        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" MaxWidth="400">
             <TextBlock x:Name="MessageText" 
                        Text="Settings saved!"
                        FontSize="16"
                        Foreground="White"
                        TextAlignment="Center"
+                       TextWrapping="Wrap"
                        Margin="0,0,0,20"/>
             <Button Width="80" Height="30" Content="OK" 
                     HorizontalAlignment="Center"

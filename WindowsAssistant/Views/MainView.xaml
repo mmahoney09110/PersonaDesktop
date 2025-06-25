@@ -5,7 +5,8 @@
         xmlns:views="clr-namespace:PersonaDesk.Views"
         Title="PersonaDesktop" Height="425" Width="500"
         Background="{StaticResource BackgroundBrush}" 
-        Foreground="{StaticResource ForegroundBrush}">
+        Foreground="{StaticResource ForegroundBrush}"
+        Loaded="MainWindow_Loaded">
 
     <Window.Resources>
         <conv:MessageToBubbleColorConverter x:Key="MessageToBubbleColorConverter"/>

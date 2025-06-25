@@ -20,7 +20,11 @@
         <!-- Hotkey -->
         <TextBlock Text="Hotkey to Open App:" Foreground="White"/>
         <TextBox Text="{Binding Hotkey, UpdateSourceTrigger=PropertyChanged}"
-                 Background="#2E2E3F" Foreground="White" BorderBrush="#555" Margin="0,5,0,15"/>
+                 Background="#2E2E3F" Foreground="White" BorderBrush="#555" Margin="0,5,0,15"
+                 PreviewKeyDown="HotkeyTextBox_PreviewKeyDown"
+                 Name="HotkeyTextBox"
+                 IsReadOnly="True"
+                 ToolTip="Press a key combination (e.g., Ctrl+Shift+P)"/>
 
         <Button x:Name="saveBtn" Content="Save Settings" Command="{Binding SaveCommand}" Width="120" HorizontalAlignment="Left" Padding="8,4"
                 Background="#3A86FF" Foreground="White" BorderThickness="0" />
