@@ -5,7 +5,7 @@ from typing import List
 import uvicorn
 
 app = FastAPI()
-model = SentenceTransformer("all-MiniLM-L6-v2")
+model = SentenceTransformer("Models/all-MiniLM-L6-v2")
 
 class TextRequest(BaseModel):
     text: str

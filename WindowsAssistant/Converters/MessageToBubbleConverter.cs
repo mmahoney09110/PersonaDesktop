@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Globalization;
+using System.Runtime;
 using System.Windows;
 using System.Windows.Data;
 using System.Windows.Media;
@@ -36,9 +37,10 @@ namespace PersonaDesk.Converter
 
     public class LoadingSpinnerVisibilityConverter : IValueConverter
     {
+        private SettingsModel _settings = SettingsService.LoadSettings();
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
-            return (value as string)?.Trim() == "Persona: ..." ? Visibility.Visible : Visibility.Collapsed;
+            return (value as string)?.Trim() == _settings.AssistantName ? Visibility.Visible : Visibility.Collapsed;
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) =>
@@ -47,9 +49,10 @@ namespace PersonaDesk.Converter
 
     public class LoadingTextVisibilityConverter : IValueConverter
     {
+        private SettingsModel _settings = SettingsService.LoadSettings();
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
-            return (value as string)?.Trim() == "Persona: ..." ? Visibility.Collapsed : Visibility.Visible;
+            return (value as string)?.Trim() == _settings.AssistantName ? Visibility.Collapsed : Visibility.Visible;
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) =>

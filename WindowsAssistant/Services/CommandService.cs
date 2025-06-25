@@ -1,4 +1,5 @@
-﻿using System;
+﻿using NAudio.CoreAudioApi;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -10,6 +11,8 @@ namespace PersonaDesk.Services
 {
     public class CommandService
     {
+        private SettingsModel _settings = SettingsService.LoadSettings();
+
         // commands
         private readonly string[] _commands = new[]
         {
@@ -50,18 +53,22 @@ namespace PersonaDesk.Services
                     {
                         File.Delete(_pendingFilePath);
                         _state = InteractionState.None;
-                        return $"Deleted: {_pendingFilePath}";
+                        return await PersonaResponse($"to delete a file and they did confirm yes so you deleted file {_pendingFilePath}.", $"Deleted: {_pendingFilePath}");
                     }
                     catch (Exception ex)
                     {
                         _state = InteractionState.None;
-                        return $"Failed to delete file: {ex.Message}";
+                        return await PersonaResponse($"to delete a file but something went wrong trying to delete {_pendingFilePath}.", $"Failed to delete file: {ex.Message}");
                     }
+                }
+                else if (input == "no" || input == "n")
+                {
+                    _state = InteractionState.None;
+                    return await PersonaResponse("to delete a file but they cancelled the request", "File deletion cancelled.");
                 }
                 else
                 {
-                    _state = InteractionState.None;
-                    return "File deletion cancelled.";
+                    return await PersonaResponse($"to delete a file but they did not confirm with yes or no and responded with {input}. They need to say yes or no.", "Please respond with 'yes' or 'no'.");
                 }
             }
 
@@ -72,12 +79,12 @@ namespace PersonaDesk.Services
                 if (resolved == null)
                 {
                     _state = InteractionState.None;
-                    return "Could not find a file with that name or path.";
+                    return await PersonaResponse("find file to delete but you found nothing", "Could not find a file with that name or path.");
                 }
 
                 _pendingFilePath = resolved;
                 _state = InteractionState.AwaitingDeleteConfirmation;
-                return $"Found: {_pendingFilePath}. Delete it? (yes/no)";
+                return await PersonaResponse($"delete file at {_pendingFilePath}, ask for confirmation and tell the where the file was found (yes/no).", $"Found: {_pendingFilePath}. Delete it? (yes/no)");
             }
 
             // Get the user embedding
@@ -114,43 +121,64 @@ namespace PersonaDesk.Services
 
             // Check threshold
             if (bestScore < THRESHOLD)
-                return $"No valid command found. Did you mean {bestCmd}?";
+                return await PersonaResponse($"'{input}' but no valid command was found from this list of commands: " + string.Join(", ", _commands), $"No valid command found. Did you mean {bestCmd}?");
 
             if (bestCmd == "change volume to")
             {
-                int? percent = ExtractVolumePercentage(input);
+                int? percent = await ExtractVolumePercentage(input);
                 if (percent.HasValue)
-                    return ChangeVolumeTo(percent.Value);
+                    return await ChangeVolumeTo(percent.Value);
                 else
-                    return "I didn’t catch what volume to set. Try something like 'change volume to 50'.";
+                    return await PersonaResponse($"change volume but did not correctly specify and said {input}", "I didn’t catch what volume to set. Try something like 'change volume to 50'.");
             }
 
             // Execute the matched command
             string actionResult = bestCmd switch
             {
-                "open browser" => Try(() => Process.Start(new ProcessStartInfo
+                "open browser" => await Try(() => Process.Start(new ProcessStartInfo
                 {
                     FileName = "https://www.google.com",
                     UseShellExecute = true
-                }), "Opening browser…"),
-                "turn up volume" => ChangeVolume(0.1f),
-                "turn down volume" => ChangeVolume(-0.1f),
-                "empty recycle bin" => new WindowsInterop().EmptyRecycleBin(),
-                "delete file" => StartFileDeleteFlow(),
-                "open folder" => OpenFolderFromInput(ExtractFolderTarget(input)),
-                "show help" => "Available commands: " + string.Join(", ", _commands),
-                _ => $"Matched {bestCmd} (score {bestScore:F2})"
+                }), await PersonaResponse("Open browser", "Opening browser...")),
+                "turn up volume" => await ChangeVolume(0.1f),
+                "turn down volume" => await ChangeVolume(-0.1f),
+                "empty recycle bin" => await Try(() => new WindowsInterop().EmptyRecycleBin(), await PersonaResponse("empty recycle bin", "Recycle bin emptied.")),
+                "delete file" => await StartFileDeleteFlow(),
+                "open folder" => await OpenFolderFromInput(ExtractFolderTarget(input)),
+                "show help" => await PersonaResponse($"show all commands. These are: " + string.Join(", ", _commands), "Available commands: " + string.Join(", ", _commands)),
+                _ => $"Matched {bestCmd} but did not find command"
             };
 
             // return when command is finished
             return actionResult;
         }
 
+        public async Task<string> PersonaResponse(string command, string fallback)
+        {
+            var result = fallback;
+            try
+            {
+                _settings = SettingsService.LoadSettings();
+                var sender = new PersonaResponse();
+                string name = _settings.AssistantName ?? "Persona";
+                string system = $"Your name is {name}. You are a Persona, an assistant with personality that has the ability to manage the users PC and run various commands. Respond with this personality: {_settings.PersonalityPrompt}" ?? "You are a friendly assistant.";
+                string userMessage = $"The user request is {command}.";
+
+                result = await sender.SendAsync(system, userMessage);
+                Console.WriteLine("Server Response: " + result);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error: {ex.Message}");
+            }
+            return result;
+        }
+
         // small helper to catch errors in Process.Start
-        private string Try(Action a, string successMsg)
+        private async Task<string> Try(Action a, string successMsg)
         {
             try { a(); return successMsg; }
-            catch (Exception ex) { return $"Error: {ex.Message}"; }
+            catch (Exception ex) { return await PersonaResponse($"but got Error: {ex.Message}", $"Error: {ex.Message}"); }
         }
 
 
@@ -165,16 +193,29 @@ namespace PersonaDesk.Services
             }
             return dot / (Math.Sqrt(magA) * Math.Sqrt(magB));
         }
-
-        private string ChangeVolume(float delta)
+        public async Task<string> ChangeVolume(float delta)
         {
             try
             {
-                var device = new AudioSwitcher.AudioApi.CoreAudio.CoreAudioController()
-                                .DefaultPlaybackDevice;
-                double newVolume = Math.Clamp(device.Volume + (delta * 100), 0, 100);
-                device.Volume = newVolume;
-                return $"Volume set to {newVolume:0}%";
+                using var enumerator = new MMDeviceEnumerator();
+                var device = enumerator.GetDefaultAudioEndpoint(DataFlow.Render, Role.Multimedia);
+                if (device == null)
+                    return await PersonaResponse("chanage volume but no device was found", "No playback device found.");
+
+                float current = device.AudioEndpointVolume.MasterVolumeLevelScalar;
+                float updated = Math.Clamp(current + delta, 0f, 1f);
+                device.AudioEndpointVolume.MasterVolumeLevelScalar = updated;
+
+                if (current > updated)
+                {
+                    return await PersonaResponse($"lower volume to {(int)(updated * 100)}%", $"Volume set to {(int)(updated * 100)}%");
+                }
+                else if (current < updated)
+                {
+                    return await PersonaResponse($"raise volume to {(int)(updated * 100)}%", $"Volume set to {(int)(updated * 100)}%");
+                }
+                return await PersonaResponse($"set volume to {(int)(updated * 100)}%", $"Volume set to {(int)(updated * 100)}%");
+
             }
             catch (Exception ex)
             {
@@ -182,7 +223,7 @@ namespace PersonaDesk.Services
             }
         }
 
-        private int? ExtractVolumePercentage(string input)
+        private async Task<int?> ExtractVolumePercentage(string input)
         {
             // Try to find a number in the user input
             var match = System.Text.RegularExpressions.Regex.Match(input, @"\b(\d{1,3})\b");
@@ -195,14 +236,22 @@ namespace PersonaDesk.Services
             return null;
         }
 
-        private string ChangeVolumeTo(int percent)
+        private async Task<string> ChangeVolumeTo(int percent)
         {
             try
             {
-                var device = new AudioSwitcher.AudioApi.CoreAudio.CoreAudioController()
-                                .DefaultPlaybackDevice;
-                device.Volume = percent;
-                return $"Volume set to {percent}%";
+                if (percent < 0 || percent > 100)
+                    return await PersonaResponse("change volume, butpercent must be between 0 and 100.", "volume percent must be between 0 and 100.");
+
+                using var enumerator = new MMDeviceEnumerator();
+                var device = enumerator.GetDefaultAudioEndpoint(DataFlow.Render, Role.Multimedia);
+                if (device == null)
+                    return await PersonaResponse("chanage volume but no device was found", "No playback device found.");
+
+                float scalar = percent / 100f; // Convert 0–100 to 0.0–1.0
+                device.AudioEndpointVolume.MasterVolumeLevelScalar = scalar;
+
+                return await PersonaResponse($"set volume to {percent}%", $"Volume set to {percent}%");
             }
             catch (Exception ex)
             {
@@ -210,11 +259,11 @@ namespace PersonaDesk.Services
             }
         }
 
-        private string StartFileDeleteFlow()
+        private async Task<string> StartFileDeleteFlow()
         {
             _state = InteractionState.AwaitingFilePath;
             _pendingFilePath = null;
-            return "Sure! You can give me the location or name and I’ll see what I can do.";
+            return await PersonaResponse("delete a file, ask them for name or location", "Sure! You can give me the location or name and I’ll see what I can do.");
         }
 
         private string ResolveFilePath(string input)
@@ -226,6 +275,7 @@ namespace PersonaDesk.Services
             {
                 Environment.GetFolderPath(Environment.SpecialFolder.Desktop),
                 Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Documents"),
                 Environment.GetFolderPath(Environment.SpecialFolder.MyPictures),
                 Environment.GetFolderPath(Environment.SpecialFolder.MyMusic),
                 Environment.GetFolderPath(Environment.SpecialFolder.MyVideos),
@@ -236,41 +286,64 @@ namespace PersonaDesk.Services
                 Environment.GetFolderPath(Environment.SpecialFolder.CommonVideos)
             };
 
-            foreach (var folder in folders)
+            foreach (var root in folders)
             {
-                Console.WriteLine($"[Scanning] {folder} for {input}");
+                Console.WriteLine($"[Scanning] {root} for {input}");
+
                 try
                 {
-                    var matches = Directory.GetFiles(folder, "*", SearchOption.AllDirectories)
-                        .Where(f => Path.GetFileName(f).Equals(input, StringComparison.OrdinalIgnoreCase))
-                        .ToList();
+                    var stack = new Stack<string>();
+                    stack.Push(root);
 
-                    if (matches.Count > 0)
-                        return matches[0];
+                    while (stack.Count > 0)
+                    {
+                        var current = stack.Pop();
+
+                        // Check for reparse point (symbolic link)
+                        var dirInfo = new DirectoryInfo(current);
+                        if ((dirInfo.Attributes & FileAttributes.ReparsePoint) != 0)
+                        {
+                            Console.WriteLine($"[Skipping Symlink] {current}");
+                            continue;
+                        }
+
+                        // Search files in current directory
+                        foreach (var file in Directory.EnumerateFiles(current, "*", SearchOption.TopDirectoryOnly))
+                        {
+                            if (Path.GetFileName(file).Equals(input, StringComparison.OrdinalIgnoreCase))
+                                return file;
+                        }
+
+                        // Queue subdirectories
+                        foreach (var subdir in Directory.EnumerateDirectories(current))
+                        {
+                            stack.Push(subdir);
+                        }
+                    }
                 }
                 catch (UnauthorizedAccessException ex)
                 {
-                    Console.WriteLine($"[Access Denied] Skipping {folder}: {ex.Message}");
+                    Console.WriteLine($"[Access Denied] Skipping {root}: {ex.Message}");
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"[Error] Scanning {folder}: {ex.Message}");
+                    Console.WriteLine($"[Error] Scanning {root}: {ex.Message}");
                 }
             }
 
             return null;
         }
-        private string OpenFolderFromInput(string input)
+        private async Task<string> OpenFolderFromInput(string input)
         {
             var path = ResolveFolderOpenPath(input);
 
             if (path != null)
             {
                 Process.Start("explorer.exe", path);
-                return $"Opening: {path}";
+                return await PersonaResponse($"to open folder: {path}.", $"Opening: {path}");
             }
 
-            return $"Sorry, I couldn’t find a folder {input}.";
+            return await PersonaResponse($"to open folder but you found no folder called {input}", $"Sorry, I couldn’t find a folder {input}.");
         }
         private string ExtractFolderTarget(string input)
         {
@@ -297,7 +370,6 @@ namespace PersonaDesk.Services
             if (Directory.Exists(input))
                 return Path.GetFullPath(input);
 
-            // Known folder shortcuts
             var knownFolders = new Dictionary<string, Environment.SpecialFolder>(StringComparer.OrdinalIgnoreCase)
             {
                 { "Desktop", Environment.SpecialFolder.Desktop },
@@ -310,18 +382,15 @@ namespace PersonaDesk.Services
                 { "CommonPictures", Environment.SpecialFolder.CommonPictures },
                 { "CommonMusic", Environment.SpecialFolder.CommonMusic },
                 { "CommonVideos", Environment.SpecialFolder.CommonVideos },
-                { "UserProfile", Environment.SpecialFolder.UserProfile }, // UserProfile is a common base
-                { "Downloads", Environment.SpecialFolder.UserProfile } // Downloads is inside UserProfile
+                { "UserProfile", Environment.SpecialFolder.UserProfile },
+                { "Downloads", Environment.SpecialFolder.UserProfile }
             };
 
             if (knownFolders.TryGetValue(input, out var specialFolder))
             {
                 var basePath = Environment.GetFolderPath(specialFolder);
-
-                // Downloads isn't a SpecialFolder directly; handle it manually
-                if (input == "Downloads" || input == "downloads")
+                if (input.Equals("Downloads", StringComparison.OrdinalIgnoreCase))
                     return Path.Combine(basePath, "Downloads");
-
                 return basePath;
             }
 
@@ -329,6 +398,7 @@ namespace PersonaDesk.Services
             {
                 Environment.GetFolderPath(Environment.SpecialFolder.Desktop),
                 Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Documents"),
                 Environment.GetFolderPath(Environment.SpecialFolder.MyPictures),
                 Environment.GetFolderPath(Environment.SpecialFolder.MyMusic),
                 Environment.GetFolderPath(Environment.SpecialFolder.MyVideos),
@@ -340,32 +410,48 @@ namespace PersonaDesk.Services
                 Environment.GetFolderPath(Environment.SpecialFolder.CommonVideos)
             };
 
-            foreach (var root in folders)
+            foreach (var root in folders.Distinct()) // avoid scanning same folder twice
             {
-                Console.WriteLine($"[Scanning Folders] {root} for '{input}'");
+                var dirsToSearch = new Queue<string>();
+                dirsToSearch.Enqueue(root);
 
-                try
+                while (dirsToSearch.Count > 0)
                 {
-                    
-                    var match = Directory.GetDirectories(root, "*", SearchOption.AllDirectories)
-                        .FirstOrDefault(dir => Path.GetFileName(dir)
-                            .Equals(input, StringComparison.OrdinalIgnoreCase));
+                    var currentDir = dirsToSearch.Dequeue();
+                    try
+                    {
+                        // Check if current directory matches
+                        if (Path.GetFileName(currentDir).Equals(input, StringComparison.OrdinalIgnoreCase))
+                            return currentDir;
 
-                    if (match != null)
-                        return match;
-                }
-                catch (UnauthorizedAccessException ex)
-                {
-                    Console.WriteLine($"[Access Denied] {root}: {ex.Message}");
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"[Error] {root}: {ex.Message}");
+                        // Enqueue subdirectories, skipping symlinks and reparse points
+                        foreach (var subDir in Directory.EnumerateDirectories(currentDir))
+                        {
+                            try
+                            {
+                                var dirInfo = new DirectoryInfo(subDir);
+                                if (!dirInfo.Attributes.HasFlag(FileAttributes.ReparsePoint))
+                                {
+                                    dirsToSearch.Enqueue(subDir);
+                                }
+                            }
+                            catch (UnauthorizedAccessException ex)
+                            {
+                                Console.WriteLine($"[Access Denied] {subDir}: {ex.Message}");
+                            }
+                        }
+                    }
+                    catch (UnauthorizedAccessException ex)
+                    {
+                        Console.WriteLine($"[Access Denied] {currentDir}: {ex.Message}");
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"[Error] {currentDir}: {ex.Message}");
+                    }
                 }
             }
-
             return null;
         }
-
     }
 }

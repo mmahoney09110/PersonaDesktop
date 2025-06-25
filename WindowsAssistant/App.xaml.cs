@@ -1,5 +1,6 @@
 ﻿using Hardcodet.Wpf.TaskbarNotification;
 using PersonaDesk.ViewModels;
+using PersonaDesk.Views;
 using System;
 using System.Net.Http;
 using System.Runtime.InteropServices;
@@ -20,6 +21,9 @@ namespace PersonaDesk
 
             base.OnStartup(e);
 
+            var mainWindow = new MainView();
+            mainWindow.Show();
+
             TrayIcon = (TaskbarIcon)FindResource("TrayIcon");
             TrayIcon.DataContext = new MainViewModel();
 
@@ -29,9 +33,9 @@ namespace PersonaDesk
                 string scriptPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Services/embedding_service.py");
 
                 Console.WriteLine($"Starting embedding service: {pythonExe} {scriptPath}");
-                EmbeddingService = new EmbeddingServiceHost(pythonExe, scriptPath);
+                EmbeddingService = new EmbeddingServiceHost(scriptPath);
                 EmbeddingService.Start();
-                Console.WriteLine("Embedding service startinf successfully...");
+                Console.WriteLine("Embedding service starting successfully...");
             }
             catch (Exception ex)
             {
@@ -75,6 +79,11 @@ namespace PersonaDesk
             EmbeddingService?.Dispose();
             Console.WriteLine("Embedding service stopped.");
             base.OnExit(e);
+        }
+
+        private void TaskbarIcon_MouseRightButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+
         }
     }
 }

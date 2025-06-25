@@ -255,7 +255,7 @@
                                 <RotateTransform x:Name="SpinnerRotate" CenterX="15" CenterY="15"/>
                             </Ellipse.RenderTransform>
                         </Ellipse>
-                        <TextBlock Text="Loading Persona..." Foreground="White" Margin="10" FontWeight="Bold"/>
+                        <TextBlock Text="{Binding LoadingStatusText}" Foreground="White" Margin="10" FontWeight="Bold"/>
                     </StackPanel>
 
                     <Grid.Triggers>

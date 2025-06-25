@@ -40,6 +40,7 @@ namespace PersonaDesk.Views
             {
                 ((ViewModels.MainViewModel)DataContext).SubmitCommand.Execute(null);
             }
+            this.Topmost = true; // Ensure the window stays on top when input is focused
         }
 
         private void ScrollToEnd()

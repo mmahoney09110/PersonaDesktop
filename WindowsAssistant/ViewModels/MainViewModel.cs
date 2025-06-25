@@ -35,10 +35,23 @@ namespace PersonaDesk.ViewModels
             }
         }
 
+        private string _loadingStatusText = "Loading Persona...";
+        public string LoadingStatusText
+        {
+            get => _loadingStatusText;
+            set
+            {
+                if (_loadingStatusText != value)
+                {
+                    _loadingStatusText = value;
+                    OnPropertyChanged(nameof(LoadingStatusText));
+                }
+            }
+        }
         public ObservableCollection<string> OutputLog { get; set; }
         public ICommand SubmitCommand { get; set; }
         private CommandService _commandService;
-
+        private SettingsModel _settings = SettingsService.LoadSettings();
         public MainViewModel()
         {
             OutputLog = new ObservableCollection<string>();
@@ -59,12 +72,20 @@ namespace PersonaDesk.ViewModels
             });
         }
 
-        private void Start()
+        private async Task Start()
         {
+            string loadingMessage = _settings.AssistantName;
+            Application.Current.Dispatcher.Invoke(() => OutputLog.Add(loadingMessage)); // Add on UI thread
+
+            var personaWelcome = await _commandService.PersonaResponse(
+                "they just opened the program, give a greeting and let them know you are here to open a folder, browse the web, or just chat.",
+                "What can I help with today?"
+            );
+
             Application.Current.Dispatcher.Invoke(() =>
             {
-                OutputLog.Add($"Persona:\nHow can I help you today?");
-
+                OutputLog.Remove(loadingMessage); // Remove using exact instance
+                OutputLog.Add(_settings.AssistantName+ ":\n" + personaWelcome);
             });
         }
 
@@ -76,22 +97,22 @@ namespace PersonaDesk.ViewModels
                 {
                     Console.WriteLine($"Received command: {InputText}");
 
-                    string loadingMessage = "Persona: ...";
-
+                    string loadingMessage = _settings.AssistantName;
+                    var input = InputText.Trim();
                     Application.Current.Dispatcher.Invoke(() =>
                     {
                         OutputLog.Add($"You:\n{InputText}");
                         OutputLog.Add(loadingMessage); // Temporary spinner message
+                        InputText = string.Empty; // Clear input after submission
                     });
 
-
-                    var result = await _commandService.HandleCommand(InputText).ConfigureAwait(false);
+                    
+                    var result = await _commandService.HandleCommand(input).ConfigureAwait(false);
 
                     Application.Current.Dispatcher.Invoke(() =>
                     {
                         OutputLog.Remove(loadingMessage);
-                        OutputLog.Add($"Persona:\n{result}");
-                        InputText = string.Empty;
+                        OutputLog.Add($"{_settings.AssistantName}:\n{result}");
                     });
 
                 }
@@ -124,6 +145,10 @@ namespace PersonaDesk.ViewModels
             });
         });
 
+        public ICommand ExitApplicationCommand => new RelayCommand(() =>
+        {
+            Application.Current.Shutdown();
+        });
     }
 
 }

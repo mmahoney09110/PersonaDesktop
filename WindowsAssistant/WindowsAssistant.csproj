@@ -17,18 +17,22 @@
     <None Remove="Resources\app.ico" />
     <None Remove="Resources\app.png" />
     <None Remove="Services\embedding_service.py" />
+    <None Remove="Services\setup_embedding_env.py" />
   </ItemGroup>
 
   <ItemGroup>
     <Content Include="Services\embedding_service.py">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
+    <Content Include="Services\setup_embedding_env.py">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="AudioSwitcher.AudioApi.CoreAudio" Version="3.0.3" />
     <PackageReference Include="Hardcodet.NotifyIcon.Wpf" Version="2.0.1" />
     <PackageReference Include="Microsoft.ML.OnnxRuntime" Version="1.22.0" />
+    <PackageReference Include="NAudio" Version="2.2.1" />
   </ItemGroup>
 
   <ItemGroup>
