@@ -3,9 +3,12 @@ from pydantic import BaseModel
 from sentence_transformers import SentenceTransformer
 from typing import List
 import uvicorn
+import os
 
 app = FastAPI()
-model = SentenceTransformer("Models/all-MiniLM-L6-v2")
+
+os.environ["TRANSFORMERS_OFFLINE"] = "1"
+model = SentenceTransformer("Models/all-MiniLM-L6-v2", local_files_only=True)
 
 class TextRequest(BaseModel):
     text: str
