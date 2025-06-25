@@ -7,8 +7,11 @@ import os
 
 app = FastAPI()
 
-os.environ["TRANSFORMERS_OFFLINE"] = "1"
-model = SentenceTransformer("Models/all-MiniLM-L6-v2", local_files_only=True)
+# 1) Download & load the model from Hugging Face
+model = SentenceTransformer("all-MiniLM-L6-v2")
+
+# 2) Save it into your project folder
+model.save("Models/all-MiniLM-L6-v2")
 
 class TextRequest(BaseModel):
     text: str
