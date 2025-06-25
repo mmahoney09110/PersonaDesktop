@@ -1,6 +1,6 @@
-# Windows Assistant: A Smart, Customizable PC Assistant
+# Persona Desktop: A Smart, Customizable PC Assistant
 
-**Windows Assistant** is a desktop application that lets you control your PC with natural commands, all filtered through a personality you define. It can launch programs, delete files, adjust volume, empty the recycle bin, and more. If it doesn't understand a command, it offers smart, clickable fallback suggestions.
+**Persona Desktop** is a desktop application that lets you control your PC with natural commands, all filtered through a personality you define. It can launch programs, delete files, adjust volume, empty the recycle bin, and more. If it doesn't understand a command, it offers smart, clickable fallback suggestions.
 
 Unlike typical utilities, Windows Assistant gives your assistant a *soul*, you choose how it speaks, how it reacts, and how it interacts with you.
 
