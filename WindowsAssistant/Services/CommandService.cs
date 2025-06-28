@@ -12,6 +12,7 @@ namespace PersonaDesk.Services
     public class CommandService
     {
         private SettingsModel _settings = SettingsService.LoadSettings();
+        private TtsService _ttsService = new TtsService();
 
         // commands
         private readonly string[] _commands = new[]
@@ -161,7 +162,7 @@ namespace PersonaDesk.Services
                 _settings = SettingsService.LoadSettings();
                 var sender = new PersonaResponse();
                 string name = _settings.AssistantName ?? "Persona";
-                string system = $"Your name is {name}. You are a Persona, an assistant with personality that has the ability to manage the users PC and run various commands. Respond with this personality: {_settings.PersonalityPrompt}" ?? "You are a friendly assistant.";
+                string system = $"Your name is {name}. You are a Persona, an assistant with personality that has the ability to manage the users PC and run various commands. Do not use emoticons. Respond with this personality: {_settings.PersonalityPrompt}" ?? "You are a friendly assistant.";
                 string userMessage = $"The user request is {command}.";
 
                 result = await sender.SendAsync(system, userMessage);
@@ -171,6 +172,15 @@ namespace PersonaDesk.Services
             {
                 Console.WriteLine($"Error: {ex.Message}");
             }
+            
+            var audioPath = await _ttsService.GenerateSpeechAsync(result);
+
+            if (audioPath != null)
+            {
+                var player = new System.Media.SoundPlayer(audioPath);
+                player.Play();
+            }
+
             return result;
         }
 

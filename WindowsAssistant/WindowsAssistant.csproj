@@ -14,14 +14,20 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="Models\STTmodel.tflite" />
     <None Remove="Resources\app.ico" />
     <None Remove="Resources\app.png" />
     <None Remove="Services\embedding_service.py" />
+    <None Remove="Services\generate_tts.py" />
+    <None Remove="Services\Persona_en_windows_v3_0_0.ppn" />
     <None Remove="Services\setup_embedding_env.py" />
   </ItemGroup>
 
   <ItemGroup>
     <Content Include="Services\embedding_service.py">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Services\generate_tts.py">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Content Include="Services\setup_embedding_env.py">
@@ -51,6 +57,7 @@
     <PackageReference Include="Hardcodet.NotifyIcon.Wpf" Version="2.0.1" />
     <PackageReference Include="Microsoft.ML.OnnxRuntime" Version="1.22.0" />
     <PackageReference Include="NAudio" Version="2.2.1" />
+    <PackageReference Include="Porcupine" Version="3.0.10" />
   </ItemGroup>
 
   <ItemGroup>
@@ -60,6 +67,9 @@
     <Resource Include="Resources\app.png">
       <Pack>True</Pack>
       <PackagePath>\</PackagePath>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Resource>
+    <Resource Include="Services\Persona_en_windows_v3_0_0.ppn">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Resource>
   </ItemGroup>

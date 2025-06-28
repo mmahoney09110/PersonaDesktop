@@ -3,8 +3,10 @@ using PersonaDesk.Services;
 using PersonaDesk.Views;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.IO;
 using System.Windows;
 using System.Windows.Input;
+using WindowsAssistant.Services;
 
 namespace PersonaDesk.ViewModels
 {
@@ -67,16 +69,15 @@ namespace PersonaDesk.ViewModels
                 finally
                 {
                     Application.Current.Dispatcher.Invoke(() => IsLoading = false);
-                    Start();
                 }
             });
         }
 
-        private async Task Start()
+        public async Task Start()
         {
             string loadingMessage = _settings.AssistantName;
             Application.Current.Dispatcher.Invoke(() => OutputLog.Add(loadingMessage)); // Add on UI thread
-
+            Console.WriteLine("Starting Persona...");
             var personaWelcome = await _commandService.PersonaResponse(
                 "they just opened the program, give a greeting and let them know you are here to open a folder, browse the web, or just chat.",
                 "What can I help with today?"
@@ -87,6 +88,19 @@ namespace PersonaDesk.ViewModels
                 OutputLog.Remove(loadingMessage); // Remove using exact instance
                 OutputLog.Add(_settings.AssistantName+ ":\n" + personaWelcome);
             });
+
+            string keywordPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Keywords", "hey_assistant.ppn");
+
+            Console.WriteLine($"Loading wake word from: {keywordPath}");
+            var detector = new WakeWordDetector();
+
+            detector.WakeWordDetected += (s, e) =>
+            {
+                Console.WriteLine("Wake word detected!");
+                // Trigger your STT or other logic here
+            };
+
+            detector.Start();
         }
 
         private void ExecuteCommand()

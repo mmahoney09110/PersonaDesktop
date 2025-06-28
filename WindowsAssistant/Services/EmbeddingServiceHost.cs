@@ -24,7 +24,7 @@ public class EmbeddingServiceHost : IDisposable
         var baseDir = Path.GetDirectoryName(scriptPath);
         _venvDir = Path.Combine(baseDir, "embedding_env");
         _setupScript = Path.Combine(baseDir, "setup_embedding_env.py");
-        _venvPython = Path.Combine(_venvDir, "Scripts", "python.exe"); // Windows-style path
+        _venvPython = Path.Combine(_venvDir, "Scripts", "python.exe");
         _httpClient = new HttpClient { BaseAddress = new Uri("http://127.0.0.1:8000") };
     }
 

@@ -7,10 +7,12 @@ namespace PersonaDesk.Views
 {
     public partial class MainView : Window
     {
+        MainViewModel _viewModel;
         public MainView()
         {
             InitializeComponent();
             var vm = new ViewModels.MainViewModel();
+            vm.Start();
             DataContext = vm;
 
             // Auto-scroll when OutputLog changes
