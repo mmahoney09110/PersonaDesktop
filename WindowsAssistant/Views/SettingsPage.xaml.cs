@@ -48,5 +48,6 @@ namespace PersonaDesk.Views
             if (DataContext is SettingsViewModel vm)
                 vm.Hotkey = hotkey;
         }
+
     }
 }

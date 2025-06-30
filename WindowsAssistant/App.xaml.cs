@@ -18,7 +18,7 @@ namespace PersonaDesk
 
         private readonly SettingsModel _settings = SettingsService.LoadSettings();
 
-        protected override void OnStartup(StartupEventArgs e)
+        protected override async void OnStartup(StartupEventArgs e)
         {
             AllocConsole();
 
@@ -27,18 +27,14 @@ namespace PersonaDesk
             var mainWindow = new MainView();
             mainWindow.Show();
 
-            TrayIcon = (TaskbarIcon)FindResource("TrayIcon");
-            TrayIcon.DataContext = new MainViewModel();
-
             try
             {
                 string pythonExe = "py"; // or full path to python.exe
-                string scriptPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Services/embedding_service.py");
 
-                Console.WriteLine($"Starting embedding service: {pythonExe} {scriptPath}");
-                EmbeddingService = new EmbeddingServiceHost(scriptPath);
+                Console.WriteLine($"Starting embedding service");
+                EmbeddingService = new EmbeddingServiceHost();
                 EmbeddingService.Start();
-                Console.WriteLine("Embedding service starting successfully...");
+                Console.WriteLine("Embedding service started successfully...");
             }
             catch (Exception ex)
             {
@@ -46,9 +42,11 @@ namespace PersonaDesk
                 MessageBox.Show($"Failed to start Assistant service: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 Environment.Exit(1);
             }
+            TrayIcon = (TaskbarIcon)FindResource("TrayIcon");
+            TrayIcon.DataContext = new MainViewModel();
         }
 
-        public static void InitializePythonServer()
+        public static async Task InitializePythonServer()
         {
             // Wait until the /status endpoint returns 200
             using var httpClient = new HttpClient();

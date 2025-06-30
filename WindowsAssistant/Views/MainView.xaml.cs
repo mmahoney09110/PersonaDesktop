@@ -12,9 +12,8 @@ namespace PersonaDesk.Views
         {
             InitializeComponent();
             var vm = new ViewModels.MainViewModel();
-            vm.Start();
             DataContext = vm;
-
+            vm.Start();
             // Auto-scroll when OutputLog changes
             vm.OutputLog.CollectionChanged += OutputLog_CollectionChanged;
         }

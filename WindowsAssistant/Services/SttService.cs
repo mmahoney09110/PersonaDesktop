@@ -1,8 +1,7 @@
-﻿using System;
-using System.IO;
-using System.Threading;
+﻿using System.IO;
+using System.Speech.Recognition;
 using Pv;
-using NAudio.Wave; 
+using NAudio.Wave;
 
 namespace WindowsAssistant.Services
 {
@@ -15,55 +14,81 @@ namespace WindowsAssistant.Services
 
         public event EventHandler? WakeWordDetected;
 
-        public WakeWordDetector()
-        {
-            if (!File.Exists("Persona_en_windows_v3_0_0.ppn"))
-                throw new FileNotFoundException("Keyword file not found");
+        private SpeechRecognitionEngine _recognizer;
 
-            Porcupine porcupine = Porcupine.FromKeywordPaths(
-                "yhsEk1mxHmS+FODacs/RRFELy9HpNPC5tWtY1sh0zAvwUBaRwY1sbA==",
-                new List<string> { "Persona_en_windows_v3_0_0.ppn" });
+        public event Action<string>? SpeechRecognized;
+
+        public WakeWordDetector(string keywordFilePath, string accessKey)
+        {
+            if (!File.Exists(keywordFilePath))
+                throw new FileNotFoundException("Keyword file not found", keywordFilePath);
+
+            // assign to the field, not a local variable
+            _porcupine = Porcupine.FromKeywordPaths(
+                accessKey,
+                new[] { keywordFilePath }
+            );
+
             _sampleRate = _porcupine.SampleRate;
             _frameLength = _porcupine.FrameLength;
 
+            // List available audio devices for debugging
+            Console.WriteLine("Available input devices:");
+            for (int i = 0; i < WaveIn.DeviceCount; i++)
+            {
+                var caps = WaveIn.GetCapabilities(i);
+                Console.WriteLine($"  [{i}] {caps.ProductName}");
+            }
+
+            // You can change DeviceNumber if it’s not the default
             _waveIn = new WaveInEvent
             {
                 DeviceNumber = 0,
                 WaveFormat = new WaveFormat(_sampleRate, 16, 1),
-                BufferMilliseconds = (int)((float)_frameLength / _sampleRate * 1000.0f)
+                BufferMilliseconds = (int)(_frameLength / (double)_sampleRate * 1000)
             };
 
             _waveIn.DataAvailable += WaveIn_DataAvailable;
+
+            // Use the default system recognizer for en-US
+            _recognizer = new SpeechRecognitionEngine(new System.Globalization.CultureInfo("en-US"));
+
+            // Load a default dictation grammar (so it recognizes free speech)
+            _recognizer.LoadGrammar(new DictationGrammar());
+
+            _recognizer.SetInputToDefaultAudioDevice();
+            _recognizer.SpeechRecognized += Recognizer_SpeechRecognized;
+            _recognizer.RecognizeCompleted += Recognizer_RecognizeCompleted;
         }
 
         public void Start()
         {
+            Console.WriteLine("Starting audio capture...");
             _waveIn.StartRecording();
         }
 
         public void Stop()
         {
+            Console.WriteLine("Stopping audio capture...");
             _waveIn.StopRecording();
         }
 
         private void WaveIn_DataAvailable(object? sender, WaveInEventArgs e)
         {
-            // Porcupine expects 16-bit PCM audio samples as short[]
-            int samplesRequired = _frameLength;
-            if (e.BytesRecorded < samplesRequired * 2) return; // Not enough data yet
+            // ensure we have exactly frameLength samples
+            if (e.BytesRecorded < _frameLength * 2) return;
 
-            // Convert byte[] to short[] (PCM 16-bit)
-            short[] pcm = new short[samplesRequired];
-            for (int i = 0; i < samplesRequired; i++)
-            {
+            // convert bytes to shorts
+            var pcm = new short[_frameLength];
+            for (int i = 0; i < _frameLength; i++)
                 pcm[i] = BitConverter.ToInt16(e.Buffer, i * 2);
-            }
 
             try
             {
-                int keywordIndex = _porcupine.Process(pcm);
-                if (keywordIndex == 0)
+                int result = _porcupine.Process(pcm);
+                if (result >= 0)
                 {
+                    Console.WriteLine("Porcupine detected keyword index: " + result);
                     WakeWordDetected?.Invoke(this, EventArgs.Empty);
                 }
             }
@@ -77,6 +102,28 @@ namespace WindowsAssistant.Services
         {
             _waveIn?.Dispose();
             _porcupine?.Dispose();
+        }
+
+        private void Recognizer_SpeechRecognized(object? sender, SpeechRecognizedEventArgs e)
+        {
+            Console.WriteLine($"You said: {e.Result.Text}");
+            SpeechRecognized?.Invoke(e.Result.Text);
+        }
+
+        private void Recognizer_RecognizeCompleted(object? sender, RecognizeCompletedEventArgs e)
+        {
+            Console.WriteLine("Speech recognition completed.");
+        }
+
+        public void StartTTS()
+        {
+            Console.WriteLine("Listening for your speech...");
+            _recognizer.RecognizeAsync(RecognizeMode.Single); // Single-shot (stop after one utterance)
+        }
+
+        public void StopTTS()
+        {
+            _recognizer.RecognizeAsyncStop();
         }
     }
 }

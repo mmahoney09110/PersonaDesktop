@@ -1,39 +1,35 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <OutputType>WinExe</OutputType>
-    <TargetFramework>net9.0-windows</TargetFramework>
-    <Nullable>enable</Nullable>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <UseWPF>true</UseWPF>
-    <PackageIcon>app.png</PackageIcon>
-    <Product>PersonaDesktop</Product>
-    <Authors>Robert Mahoney</Authors>
-    <AssemblyName>PersonaDesktop</AssemblyName>
-    <ApplicationIcon>Resources\app.ico</ApplicationIcon>
-  </PropertyGroup>
+	<PropertyGroup>
+		<OutputType>WinExe</OutputType>
+		<TargetFramework>net9.0-windows</TargetFramework>
+		<TargetPlatformIdentifier>Windows</TargetPlatformIdentifier>
+		<TargetPlatformVersion>10.0.19041.0</TargetPlatformVersion>
+		<TargetPlatformMinVersion>10.0.19041.0</TargetPlatformMinVersion>
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<UseWPF>true</UseWPF>
+		<PackageIcon>app.png</PackageIcon>
+		<Product>PersonaDesktop</Product>
+		<Authors>Robert Mahoney</Authors>
+		<AssemblyName>PersonaDesktop</AssemblyName>
+		<ApplicationIcon>Resources\app.ico</ApplicationIcon>
+	</PropertyGroup>
 
-  <ItemGroup>
-    <None Remove="Models\STTmodel.tflite" />
-    <None Remove="Resources\app.ico" />
-    <None Remove="Resources\app.png" />
-    <None Remove="Services\embedding_service.py" />
-    <None Remove="Services\generate_tts.py" />
-    <None Remove="Services\Persona_en_windows_v3_0_0.ppn" />
-    <None Remove="Services\setup_embedding_env.py" />
-  </ItemGroup>
+	<ItemGroup>
+		<None Remove="embedding_service.exe" />
+		<None Remove="Models\STTmodel.tflite" />
+		<None Remove="Resources\app.ico" />
+		<None Remove="Resources\app.png" />
+		<None Remove="Services\embedding_service.exe" />
+		<None Remove="Services\Persona_en_windows_v3_0_0.ppn" />
+	</ItemGroup>
 
-  <ItemGroup>
-    <Content Include="Services\embedding_service.py">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-    <Content Include="Services\generate_tts.py">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-    <Content Include="Services\setup_embedding_env.py">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-  </ItemGroup>
+	<ItemGroup>
+		<Content Include="embedding_service.exe">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</Content>
+	</ItemGroup>
 
 	<ItemGroup>
 		<None Update="Models\all-MiniLM-L6-v2\1_Pooling\*">
@@ -46,7 +42,7 @@
 			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
 		</None>
 	</ItemGroup>
-	
+
 	<ItemGroup>
 		<None Update="Models\all-MiniLM-L6-v2\*">
 			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
@@ -54,24 +50,30 @@
 	</ItemGroup>
 
 	<ItemGroup>
-    <PackageReference Include="Hardcodet.NotifyIcon.Wpf" Version="2.0.1" />
-    <PackageReference Include="Microsoft.ML.OnnxRuntime" Version="1.22.0" />
-    <PackageReference Include="NAudio" Version="2.2.1" />
-    <PackageReference Include="Porcupine" Version="3.0.10" />
-  </ItemGroup>
+		<None Update="Keywords\*">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
+	</ItemGroup>
 
-  <ItemGroup>
-    <Resource Include="Resources\app.ico">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Resource>
-    <Resource Include="Resources\app.png">
-      <Pack>True</Pack>
-      <PackagePath>\</PackagePath>
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Resource>
-    <Resource Include="Services\Persona_en_windows_v3_0_0.ppn">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Resource>
-  </ItemGroup>
+	<ItemGroup>
+		<PackageReference Include="Hardcodet.NotifyIcon.Wpf" Version="2.0.1" />
+		<PackageReference Include="NAudio" Version="2.2.1" />
+		<PackageReference Include="Porcupine" Version="3.0.10" />
+		<PackageReference Include="System.Speech" Version="9.0.6" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<Resource Include="Resources\app.ico">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</Resource>
+		<Resource Include="Resources\app.png">
+			<Pack>True</Pack>
+			<PackagePath>\</PackagePath>
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</Resource>
+		<Resource Include="Keywords\Persona_en_windows_v3_0_0.ppn">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</Resource>
+	</ItemGroup>
 
 </Project>

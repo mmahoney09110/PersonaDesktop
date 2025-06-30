@@ -404,3 +404,6 @@ FodyWeavers.xsd
 
 # JetBrains Rider
 *.sln.iml
+
+#large pyinstaller exe. Found in Releases
+embedding_service.exe

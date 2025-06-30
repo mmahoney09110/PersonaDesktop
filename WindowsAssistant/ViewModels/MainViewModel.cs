@@ -50,6 +50,8 @@ namespace PersonaDesk.ViewModels
                 }
             }
         }
+
+        private bool loadingSTT = false;
         public ObservableCollection<string> OutputLog { get; set; }
         public ICommand SubmitCommand { get; set; }
         private CommandService _commandService;
@@ -79,8 +81,8 @@ namespace PersonaDesk.ViewModels
             Application.Current.Dispatcher.Invoke(() => OutputLog.Add(loadingMessage)); // Add on UI thread
             Console.WriteLine("Starting Persona...");
             var personaWelcome = await _commandService.PersonaResponse(
-                "they just opened the program, give a greeting and let them know you are here to open a folder, browse the web, or just chat.",
-                "What can I help with today?"
+                "they just opened the program, give a greeting and let them know you are here to open a folder, browse the web, or just chat. They can do this by either typing or saying 'Persona'.",
+                "Enter a command, or say Persona to get started. What can I help with today?"
             );
 
             Application.Current.Dispatcher.Invoke(() =>
@@ -89,18 +91,68 @@ namespace PersonaDesk.ViewModels
                 OutputLog.Add(_settings.AssistantName+ ":\n" + personaWelcome);
             });
 
-            string keywordPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Keywords", "hey_assistant.ppn");
+            string keywordPath = Path.Combine(
+                AppDomain.CurrentDomain.BaseDirectory,
+                "Keywords",
+                "Persona_en_windows_v3_0_0.ppn"
+            );
 
-            Console.WriteLine($"Loading wake word from: {keywordPath}");
-            var detector = new WakeWordDetector();
+            if (!File.Exists(keywordPath))
+            {
+                Console.Error.WriteLine($"Keyword file not found at: {keywordPath}");
+                return;
+            }
+
+            var detector = new WakeWordDetector(
+                keywordFilePath: keywordPath,
+                accessKey: "yhsEk1mxHmS+FODacs/RRFELy9HpNPC5tWtY1sh0zAvwUBaRwY1sbA=="
+            );
+
+            
+            detector.SpeechRecognized += text =>
+            {
+                // Update your textbox (on UI thread!)
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    loadingSTT = false; 
+                    InputText = text;
+                    ExecuteCommand();
+                });
+            };
 
             detector.WakeWordDetected += (s, e) =>
             {
                 Console.WriteLine("Wake word detected!");
-                // Trigger your STT or other logic here
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    var mainWindow = Application.Current.Windows.OfType<MainView>().FirstOrDefault();
+                    if (mainWindow != null)
+                    {
+                        mainWindow.Show();
+                        mainWindow.WindowState = WindowState.Normal;
+                        mainWindow.Activate();
+                        App.TrayIcon.Visibility = Visibility.Collapsed;
+                    }
+                });
+                detector.StartTTS();
+                loadingSTT = true;
+                WaitingForSTT();
             };
 
             detector.Start();
+
+        }
+
+        private async void WaitingForSTT()
+        {
+            InputText = "";
+            while (loadingSTT)
+            {
+                if (InputText == ". . . ")
+                    InputText = "";
+                InputText += ". ";
+                await Task.Delay(1000);
+            }
         }
 
         private void ExecuteCommand()

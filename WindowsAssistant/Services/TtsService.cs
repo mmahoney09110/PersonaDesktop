@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using System.IO;
 using System.Threading.Tasks;
+using Windows.Media.SpeechSynthesis;
 
 namespace WindowsAssistant.Services
 {
@@ -10,60 +11,42 @@ namespace WindowsAssistant.Services
         private readonly string _scriptPath;
         private readonly string _venvDir;
         private readonly string _venvPython;
-        
+        SettingsModel _setting;
 
         public TtsService(string scriptRelativePath = "Services/generate_tts.py")
         {
             var baseDir = Path.GetDirectoryName(scriptRelativePath);
-            _venvDir = Path.Combine(baseDir, "embedding_env");
+            _venvDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "embedding_env");
             _venvPython = Path.Combine(_venvDir, "Scripts", "python.exe");
             _scriptPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, scriptRelativePath);
         }
 
-        public async Task<string?> GenerateSpeechAsync(string text, string outputFile = "output.wav")
+        public async Task GenerateSpeechAsync(string text, string outputFile = "output.wav")
         {
-            if (!File.Exists(_scriptPath))
+            var synth = new SpeechSynthesizer();
+            _setting = SettingsService.LoadSettings();
+            Console.WriteLine("Available voices:");
+            foreach (var voice in SpeechSynthesizer.AllVoices)
             {
-                Console.Error.WriteLine("TTS script not found: " + _scriptPath);
-                return null;
+                Console.WriteLine($"Name: {voice.DisplayName}, Gender: {voice.Gender}, Language: {voice.Language}");
             }
 
-            string outputPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, outputFile);
-            string quotedText = $"\"{text}\"";
-            string quotedOutput = $"\"{outputPath}\"";
-
-            var psi = new ProcessStartInfo
+            // Choose a specific voice
+            var selectedVoice = SpeechSynthesizer.AllVoices
+                .FirstOrDefault(v => v.DisplayName.Contains(_setting.SpeechVoice));
+            if (selectedVoice != null)
             {
-                FileName = _venvPython,
-                Arguments = $"{_scriptPath} {quotedText} {quotedOutput}",
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                UseShellExecute = false,
-                CreateNoWindow = true
-            };
-
-            try
-            {
-                using var process = Process.Start(psi);
-                if (process == null)
-                    throw new Exception("Failed to start TTS process.");
-
-                string stdOut = await process.StandardOutput.ReadToEndAsync();
-                string stdErr = await process.StandardError.ReadToEndAsync();
-
-                await process.WaitForExitAsync();
-
-                Console.WriteLine("[TTS STDOUT]: " + stdOut);
-                if (!string.IsNullOrWhiteSpace(stdErr))
-                    Console.WriteLine("[TTS STDERR]: " + stdErr);
-
-                return File.Exists(outputPath) ? outputPath : null;
+                synth.Voice = selectedVoice;
             }
-            catch (Exception ex)
+
+            var stream = await synth.SynthesizeTextToStreamAsync(text);
+
+            using (var fileStream = File.Create("output.wav"))
             {
-                Console.Error.WriteLine("TTS Error: " + ex);
-                return null;
+                await stream.AsStream().CopyToAsync(fileStream);
             }
+
+            Console.WriteLine("Saved to output.wav!");
         }
     }
 }

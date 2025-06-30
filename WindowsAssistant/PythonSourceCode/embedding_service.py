@@ -7,7 +7,7 @@ import os
 
 app = FastAPI()
 
-# 1) Download & load the model from Hugging Face
+# load the model from local
 model = SentenceTransformer("Models/all-MiniLM-L6-v2")
 
 class TextRequest(BaseModel):

@@ -162,7 +162,7 @@ namespace PersonaDesk.Services
                 _settings = SettingsService.LoadSettings();
                 var sender = new PersonaResponse();
                 string name = _settings.AssistantName ?? "Persona";
-                string system = $"Your name is {name}. You are a Persona, an assistant with personality that has the ability to manage the users PC and run various commands. Do not use emoticons. Respond with this personality: {_settings.PersonalityPrompt}" ?? "You are a friendly assistant.";
+                string system = $"Your name is {name}. You are a Persona, an assistant with personality that has the ability to manage the users PC and run various commands. Do not use formatting or emoticons. When user issues a command dont tell them how to do it, as the program you are apart of handles that.Respond with this personality: {_settings.PersonalityPrompt}" ?? "You are a friendly assistant.";
                 string userMessage = $"The user request is {command}.";
 
                 result = await sender.SendAsync(system, userMessage);
@@ -172,15 +172,17 @@ namespace PersonaDesk.Services
             {
                 Console.WriteLine($"Error: {ex.Message}");
             }
-            
-            var audioPath = await _ttsService.GenerateSpeechAsync(result);
 
-            if (audioPath != null)
-            {
-                var player = new System.Media.SoundPlayer(audioPath);
-                player.Play();
+            if (_settings.SpeechEnabled) 
+            { 
+                await _ttsService.GenerateSpeechAsync(result);
+                var audioPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "output.wav");
+                if (audioPath != null)
+                {
+                    var player = new System.Media.SoundPlayer(audioPath);
+                    player.Play();
+                }
             }
-
             return result;
         }
 
