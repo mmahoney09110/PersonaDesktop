@@ -26,6 +26,12 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<None Update="Sounds\*">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
+	</ItemGroup>
+
+	<ItemGroup>
 		<Content Include="embedding_service.exe">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</Content>

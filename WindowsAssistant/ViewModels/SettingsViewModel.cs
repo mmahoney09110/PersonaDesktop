@@ -1,6 +1,7 @@
 ﻿using PersonaDesk.Helpers;
 using PersonaDesk.Views;
 using System.ComponentModel;
+using System.IO;
 using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Input;
@@ -53,7 +54,7 @@ public class SettingsViewModel : INotifyPropertyChanged
         // Populate voices
         foreach (var voice in SpeechSynthesizer.AllVoices)
         {
-            AvailableVoices.Add(voice.DisplayName);
+            AvailableVoices.Add(voice.DisplayName + " (" + voice.Language + ")");
         }
         // Set default if current saved one doesn't exist
         if (!AvailableVoices.Contains(SpeechVoice))
@@ -73,10 +74,19 @@ public class SettingsViewModel : INotifyPropertyChanged
             HotkeyService.RegisterHotkey(mainWindow, _settings.Hotkey);
 
             dialog.Owner = mainWindow;
+            
+            var audioPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Sounds", "dialogPopup.wav");
+            if (audioPath != null)
+            {
+                Console.WriteLine($"Playing sound: {audioPath}");
+                var player = new System.Media.SoundPlayer(audioPath);
+                player.Play();
+            }
             dialog.ShowDialog();
         }
         catch (Exception ex)
         {
+            Console.WriteLine(ex);
             var dialog = new QuickDialog($"Failed to save settings: {ex.Message}");
             dialog.Owner = Application.Current.MainWindow;
             dialog.ShowDialog();

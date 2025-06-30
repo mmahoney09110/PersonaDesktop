@@ -56,11 +56,14 @@ namespace PersonaDesk.ViewModels
         public ICommand SubmitCommand { get; set; }
         private CommandService _commandService;
         private SettingsModel _settings = SettingsService.LoadSettings();
+        private List<MessageModel> _chatHistory;
+
         public MainViewModel()
         {
             OutputLog = new ObservableCollection<string>();
             SubmitCommand = new RelayCommand(ExecuteCommand);
             _commandService = new CommandService();
+            _chatHistory = ChatHistoryService.LoadHistory();
 
             Task.Run(() =>
             {
@@ -108,15 +111,23 @@ namespace PersonaDesk.ViewModels
                 accessKey: "yhsEk1mxHmS+FODacs/RRFELy9HpNPC5tWtY1sh0zAvwUBaRwY1sbA=="
             );
 
-            
+
             detector.SpeechRecognized += text =>
             {
-                // Update your textbox (on UI thread!)
                 Application.Current.Dispatcher.Invoke(() =>
                 {
-                    loadingSTT = false; 
-                    InputText = text;
-                    ExecuteCommand();
+                    loadingSTT = false;
+
+                    if (!string.IsNullOrWhiteSpace(text))
+                    {
+                        InputText = text;
+                        ExecuteCommand();
+                    }
+                    else
+                    {
+                        InputText = string.Empty;
+                        Console.WriteLine("No speech input — stopped listening.");
+                    }
                 });
             };
 
@@ -134,6 +145,12 @@ namespace PersonaDesk.ViewModels
                         App.TrayIcon.Visibility = Visibility.Collapsed;
                     }
                 });
+                var audioPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Sounds", "waitingSTT.wav");
+                if (audioPath != null)
+                {
+                    var player = new System.Media.SoundPlayer(audioPath);
+                    player.PlaySync();
+                }
                 detector.StartTTS();
                 loadingSTT = true;
                 WaitingForSTT();
@@ -145,11 +162,11 @@ namespace PersonaDesk.ViewModels
 
         private async void WaitingForSTT()
         {
-            InputText = "";
+            InputText = "listening";
             while (loadingSTT)
             {
-                if (InputText == ". . . ")
-                    InputText = "";
+                if (InputText == "listening. . . " || InputText.Length>15)
+                    InputText = "listening";
                 InputText += ". ";
                 await Task.Delay(1000);
             }
@@ -162,7 +179,12 @@ namespace PersonaDesk.ViewModels
                 try
                 {
                     Console.WriteLine($"Received command: {InputText}");
-
+                    var audioPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Sounds", "sent.wav");
+                    if (audioPath != null)
+                    {
+                        var player = new System.Media.SoundPlayer(audioPath);
+                        player.Play();
+                    }
                     string loadingMessage = _settings.AssistantName;
                     var input = InputText.Trim();
                     Application.Current.Dispatcher.Invoke(() =>
@@ -172,15 +194,28 @@ namespace PersonaDesk.ViewModels
                         InputText = string.Empty; // Clear input after submission
                     });
 
-                    
                     var result = await _commandService.HandleCommand(input).ConfigureAwait(false);
-
+                    
                     Application.Current.Dispatcher.Invoke(() =>
                     {
                         OutputLog.Remove(loadingMessage);
                         OutputLog.Add($"{_settings.AssistantName}:\n{result}");
                     });
 
+                    // Add messages to history
+                    _chatHistory.Add(new MessageModel
+                    {
+                        Role = "user",
+                        Content = input,
+                        Timestamp = DateTime.Now
+                    });
+                    _chatHistory.Add(new MessageModel
+                    {
+                        Role = "assistant",
+                        Content = result,
+                        Timestamp = DateTime.Now
+                    });
+                    ChatHistoryService.SaveHistory(_chatHistory);
                 }
                 catch (Exception ex)
                 {

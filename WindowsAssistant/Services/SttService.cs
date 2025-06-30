@@ -11,6 +11,8 @@ namespace WindowsAssistant.Services
         private readonly WaveInEvent _waveIn;
         private readonly int _sampleRate;
         private readonly int _frameLength;
+        private System.Timers.Timer? _timeoutTimer;
+
 
         public event EventHandler? WakeWordDetected;
 
@@ -104,26 +106,50 @@ namespace WindowsAssistant.Services
             _porcupine?.Dispose();
         }
 
+        public void StartTTS()
+        {
+            Console.WriteLine("Listening for your speech...");
+
+            // Always remove previous handlers to avoid duplicate firing
+            _recognizer.RecognizeCompleted -= Recognizer_RecognizeCompleted;
+            _recognizer.SpeechRecognized -= Recognizer_SpeechRecognized;
+
+            _recognizer.RecognizeCompleted += Recognizer_RecognizeCompleted;
+            _recognizer.SpeechRecognized += Recognizer_SpeechRecognized;
+
+            _timeoutTimer = new System.Timers.Timer(5000); // 5 seconds
+            _timeoutTimer.Elapsed += TimeoutElapsed;
+            _timeoutTimer.AutoReset = false;
+            _timeoutTimer.Start();
+
+            _recognizer.RecognizeAsync(RecognizeMode.Single);
+        }
+
+        private void TimeoutElapsed(object? sender, System.Timers.ElapsedEventArgs e)
+        {
+            Console.WriteLine("No speech detected after 5 seconds. Stopping recognition.");
+            _recognizer.RecognizeAsyncCancel();
+            _timeoutTimer?.Stop();
+
+            // Fire empty recognized event to stop dots
+            SpeechRecognized?.Invoke(string.Empty);
+        }
+
+
         private void Recognizer_SpeechRecognized(object? sender, SpeechRecognizedEventArgs e)
         {
-            Console.WriteLine($"You said: {e.Result.Text}");
+            Console.WriteLine("Speech recognized: " + e.Result.Text);
+            _timeoutTimer?.Stop();
+
             SpeechRecognized?.Invoke(e.Result.Text);
         }
 
         private void Recognizer_RecognizeCompleted(object? sender, RecognizeCompletedEventArgs e)
         {
-            Console.WriteLine("Speech recognition completed.");
-        }
+            Console.WriteLine("Recognition completed.");
 
-        public void StartTTS()
-        {
-            Console.WriteLine("Listening for your speech...");
-            _recognizer.RecognizeAsync(RecognizeMode.Single); // Single-shot (stop after one utterance)
-        }
-
-        public void StopTTS()
-        {
-            _recognizer.RecognizeAsyncStop();
+            // Always stop timer on completion
+            _timeoutTimer?.Stop();
         }
     }
 }

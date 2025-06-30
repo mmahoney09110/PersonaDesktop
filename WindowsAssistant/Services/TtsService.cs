@@ -32,8 +32,10 @@ namespace WindowsAssistant.Services
             }
 
             // Choose a specific voice
+            Console.WriteLine("selected voice: " + _setting.SpeechVoice);
             var selectedVoice = SpeechSynthesizer.AllVoices
-                .FirstOrDefault(v => v.DisplayName.Contains(_setting.SpeechVoice));
+                .FirstOrDefault(v => (v.DisplayName + " (" + v.Language + ")") == _setting.SpeechVoice);
+            Console.WriteLine("Voice used: " + (selectedVoice?.DisplayName ?? "Default voice"));
             if (selectedVoice != null)
             {
                 synth.Voice = selectedVoice;

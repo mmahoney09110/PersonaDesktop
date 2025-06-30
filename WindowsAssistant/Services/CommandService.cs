@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Speech.Synthesis;
 using System.Threading.Tasks;
 using WindowsAssistant.Services;
 
@@ -11,8 +12,9 @@ namespace PersonaDesk.Services
 {
     public class CommandService
     {
-        private SettingsModel _settings = SettingsService.LoadSettings();
+        private SettingsModel _settings;
         private TtsService _ttsService = new TtsService();
+        private List<MessageModel> _chatHistory;
 
         // commands
         private readonly string[] _commands = new[]
@@ -122,7 +124,7 @@ namespace PersonaDesk.Services
 
             // Check threshold
             if (bestScore < THRESHOLD)
-                return await PersonaResponse($"'{input}' but no valid command was found from this list of commands: " + string.Join(", ", _commands), $"No valid command found. Did you mean {bestCmd}?");
+                return await PersonaResponse($"User: '{input}'.  This is not a system command from list of commands: " + string.Join(", ", _commands) +". If it seems like they meant one of the commands suggest it, otherwise respond to their input.", $"No valid command found. Did you mean {bestCmd}?");
 
             if (bestCmd == "change volume to")
             {
@@ -130,7 +132,7 @@ namespace PersonaDesk.Services
                 if (percent.HasValue)
                     return await ChangeVolumeTo(percent.Value);
                 else
-                    return await PersonaResponse($"change volume but did not correctly specify and said {input}", "I didn’t catch what volume to set. Try something like 'change volume to 50'.");
+                    return await PersonaResponse($"change volume but did not correctly specify what number and said '{input}'", "I didn’t catch what volume to set. Try something like 'change volume to 50'.");
             }
 
             // Execute the matched command
@@ -159,11 +161,25 @@ namespace PersonaDesk.Services
             var result = fallback;
             try
             {
+                _chatHistory = ChatHistoryService.LoadHistory();
+                var recentMessages = _chatHistory.TakeLast(10).ToList();
+
                 _settings = SettingsService.LoadSettings();
                 var sender = new PersonaResponse();
                 string name = _settings.AssistantName ?? "Persona";
-                string system = $"Your name is {name}. You are a Persona, an assistant with personality that has the ability to manage the users PC and run various commands. Do not use formatting or emoticons. When user issues a command dont tell them how to do it, as the program you are apart of handles that.Respond with this personality: {_settings.PersonalityPrompt}" ?? "You are a friendly assistant.";
-                string userMessage = $"The user request is {command}.";
+                var today = DateTime.Now.ToString("MMMM dd, yyyy");
+                string system = $"Your name is {name}. You are a Persona, an assistant with personality that has the ability to manage the users PC and run various commands. Do not use formatting or emoticons. When user issues a command dont tell them how to do it, as the program you are apart of handles that. The date is {today}. Respond with this personality: {_settings.PersonalityPrompt}" ?? "You are a friendly assistant.";
+                string userMessage = "";
+                if (recentMessages.Count != 0)
+                {
+                    userMessage += $"Message History:\n";
+                    foreach (var msg in recentMessages)
+                    {
+                        userMessage += $"{msg.Role}: {msg.Content}\n";
+                    }
+                }
+
+                userMessage += $"\nThe user request is {command}";
 
                 result = await sender.SendAsync(system, userMessage);
                 Console.WriteLine("Server Response: " + result);
@@ -173,10 +189,17 @@ namespace PersonaDesk.Services
                 Console.WriteLine($"Error: {ex.Message}");
             }
 
+            var audioPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Sounds", "response.wav");
+            if (audioPath != null)
+            {
+                var player = new System.Media.SoundPlayer(audioPath);
+                player.Play();
+            }
+
             if (_settings.SpeechEnabled) 
             { 
                 await _ttsService.GenerateSpeechAsync(result);
-                var audioPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "output.wav");
+                audioPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "output.wav");
                 if (audioPath != null)
                 {
                     var player = new System.Media.SoundPlayer(audioPath);

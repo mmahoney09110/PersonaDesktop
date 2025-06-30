@@ -81,7 +81,7 @@
                       SelectedItem="{Binding SpeechVoice, UpdateSourceTrigger=PropertyChanged}" 
                       Background="#FF323244" Foreground="#555" BorderBrush="#555" 
                       Margin="0,5,0,0"/>
-            <TextBlock TextWrapping="Wrap" Text="*Uses Windows Voices. These can be managed in Settings -&gt; Time and Language -&gt; Speech" Height="38" Margin="0,0,0,10" Foreground="White" Width="548" FontSize="10"/>
+            <TextBlock TextWrapping="Wrap" Text="*Uses Windows Voices. These can be managed in Settings -&gt; Time and Language -&gt; Speech" Height="16" Margin="0,0,0,10" Foreground="White" Width="548" FontSize="10"/>
             <Button x:Name="saveBtn" Content="Save Settings" Command="{Binding SaveCommand}" Width="145" Padding="8,4"
                     Background="#3A86FF" Foreground="White" BorderThickness="0" HorizontalAlignment="Left" Height="43" />
         </StackPanel>
