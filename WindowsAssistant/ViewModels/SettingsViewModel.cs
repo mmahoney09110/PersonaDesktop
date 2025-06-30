@@ -78,7 +78,6 @@ public class SettingsViewModel : INotifyPropertyChanged
             var audioPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Sounds", "dialogPopup.wav");
             if (audioPath != null)
             {
-                Console.WriteLine($"Playing sound: {audioPath}");
                 var player = new System.Media.SoundPlayer(audioPath);
                 player.Play();
             }
