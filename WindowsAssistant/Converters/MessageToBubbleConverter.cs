@@ -40,6 +40,7 @@ namespace PersonaDesk.Converter
         private SettingsModel _settings = SettingsService.LoadSettings();
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
+            _settings = SettingsService.LoadSettings();
             return (value as string)?.Trim() == _settings.AssistantName ? Visibility.Visible : Visibility.Collapsed;
         }
 
@@ -52,6 +53,7 @@ namespace PersonaDesk.Converter
         private SettingsModel _settings = SettingsService.LoadSettings();
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
+            _settings = SettingsService.LoadSettings();
             return (value as string)?.Trim() == _settings.AssistantName ? Visibility.Collapsed : Visibility.Visible;
         }
 

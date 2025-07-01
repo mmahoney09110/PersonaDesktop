@@ -15,7 +15,6 @@ public class PersonaResponse
 
     public PersonaResponse()
     {
-        //https://openai-proxy-server-vo9f.onrender.com/persona/response
         _serverUrl = "https://openai-proxy-server-vo9f.onrender.com/persona/response";
         _clientIp = GetLocalIPAddress();
         Console.WriteLine($"Using client IP: {_clientIp}");

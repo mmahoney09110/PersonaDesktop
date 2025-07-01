@@ -50,8 +50,6 @@ namespace PersonaDesk.ViewModels
                 }
             }
         }
-
-        private bool loadingSTT = false;
         public ObservableCollection<string> OutputLog { get; set; }
         public ICommand SubmitCommand { get; set; }
         private CommandService _commandService;
@@ -91,85 +89,9 @@ namespace PersonaDesk.ViewModels
             Application.Current.Dispatcher.Invoke(() =>
             {
                 OutputLog.Remove(loadingMessage); // Remove using exact instance
-                OutputLog.Add(_settings.AssistantName+ ":\n" + personaWelcome);
+                OutputLog.Add(_settings.AssistantName + ":\n" + personaWelcome);
             });
 
-            string keywordPath = Path.Combine(
-                AppDomain.CurrentDomain.BaseDirectory,
-                "Keywords",
-                "Persona_en_windows_v3_0_0.ppn"
-            );
-
-            if (!File.Exists(keywordPath))
-            {
-                Console.Error.WriteLine($"Keyword file not found at: {keywordPath}");
-                return;
-            }
-
-            var detector = new WakeWordDetector(
-                keywordFilePath: keywordPath,
-                accessKey: "yhsEk1mxHmS+FODacs/RRFELy9HpNPC5tWtY1sh0zAvwUBaRwY1sbA=="
-            );
-
-
-            detector.SpeechRecognized += text =>
-            {
-                Application.Current.Dispatcher.Invoke(() =>
-                {
-                    loadingSTT = false;
-
-                    if (!string.IsNullOrWhiteSpace(text))
-                    {
-                        InputText = text;
-                        ExecuteCommand();
-                    }
-                    else
-                    {
-                        InputText = string.Empty;
-                        Console.WriteLine("No speech input — stopped listening.");
-                    }
-                });
-            };
-
-            detector.WakeWordDetected += (s, e) =>
-            {
-                Console.WriteLine("Wake word detected!");
-                Application.Current.Dispatcher.Invoke(() =>
-                {
-                    var mainWindow = Application.Current.Windows.OfType<MainView>().FirstOrDefault();
-                    if (mainWindow != null)
-                    {
-                        mainWindow.Show();
-                        mainWindow.WindowState = WindowState.Normal;
-                        mainWindow.Activate();
-                        App.TrayIcon.Visibility = Visibility.Collapsed;
-                    }
-                });
-                var audioPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Sounds", "waitingSTT.wav");
-                if (audioPath != null)
-                {
-                    var player = new System.Media.SoundPlayer(audioPath);
-                    player.PlaySync();
-                }
-                detector.StartTTS();
-                loadingSTT = true;
-                WaitingForSTT();
-            };
-
-            detector.Start();
-
-        }
-
-        private async void WaitingForSTT()
-        {
-            InputText = "listening";
-            while (loadingSTT)
-            {
-                if (InputText == "listening. . . " || InputText.Length>15)
-                    InputText = "listening";
-                InputText += ". ";
-                await Task.Delay(1000);
-            }
         }
 
         private void ExecuteCommand()
@@ -178,6 +100,7 @@ namespace PersonaDesk.ViewModels
             {
                 try
                 {
+                    _settings = SettingsService.LoadSettings();
                     Console.WriteLine($"Received command: {InputText}");
                     var audioPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Sounds", "sent.wav");
                     if (audioPath != null)

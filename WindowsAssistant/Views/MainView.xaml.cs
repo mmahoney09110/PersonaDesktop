@@ -2,12 +2,16 @@ using System.Windows;
 using System.Windows.Input;
 using System.Collections.Specialized;
 using PersonaDesk.ViewModels;
+using WindowsAssistant.Services;
+using System.IO;
 
 namespace PersonaDesk.Views
 {
     public partial class MainView : Window
     {
         MainViewModel _viewModel;
+        private bool loadingSTT = false;
+
         public MainView()
         {
             InitializeComponent();
@@ -76,8 +80,50 @@ namespace PersonaDesk.Views
                 {
                     var vm = DataContext as MainViewModel;
                     vm?.ShowMainWindowCommand.Execute(null);
+
+                    var detector = new WakeWordDetector();
+
+                    detector.SpeechRecognized += text =>
+                    {
+                        Application.Current.Dispatcher.Invoke(() =>
+                        {
+                            loadingSTT = false;
+
+                            if (!string.IsNullOrWhiteSpace(text))
+                            {
+                                InputBox.Text = text;
+                                //((ViewModels.MainViewModel)DataContext).SubmitCommand.Execute(null);
+                            }
+                            else
+                            {
+                                InputBox.Text = string.Empty;
+                                Console.WriteLine("No speech input — stopped listening.");
+                            }
+                        });
+                    };
+                    var audioPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Sounds", "waitingSTT.wav");
+                    if (audioPath != null)
+                    {
+                        var player = new System.Media.SoundPlayer(audioPath);
+                        player.Play();
+                    }
+                    detector.StartTTS();
+                    loadingSTT = true;
+                    WaitingForSTT();
                 });
             });
+        }
+
+        private async void WaitingForSTT()
+        {
+            InputBox.Text = "listening";
+            while (loadingSTT)
+            {
+                if (InputBox.Text == "listening. . . " || InputBox.Text.Length > 15)
+                    InputBox.Text = "listening";
+                InputBox.Text += ". ";
+                await Task.Delay(1000);
+            }
         }
 
     }

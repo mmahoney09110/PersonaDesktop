@@ -1,13 +1,10 @@
-﻿using System.IO;
-using System.Speech.Recognition;
-using Pv;
+﻿using System.Speech.Recognition;
 using NAudio.Wave;
 
 namespace WindowsAssistant.Services
 {
     public class WakeWordDetector : IDisposable
     {
-        private readonly Porcupine _porcupine;
         private readonly WaveInEvent _waveIn;
         private readonly int _sampleRate;
         private readonly int _frameLength;
@@ -20,20 +17,8 @@ namespace WindowsAssistant.Services
 
         public event Action<string>? SpeechRecognized;
 
-        public WakeWordDetector(string keywordFilePath, string accessKey)
+        public WakeWordDetector()
         {
-            if (!File.Exists(keywordFilePath))
-                throw new FileNotFoundException("Keyword file not found", keywordFilePath);
-
-            // assign to the field, not a local variable
-            _porcupine = Porcupine.FromKeywordPaths(
-                accessKey,
-                new[] { keywordFilePath }
-            );
-
-            _sampleRate = _porcupine.SampleRate;
-            _frameLength = _porcupine.FrameLength;
-
             // List available audio devices for debugging
             Console.WriteLine("Available input devices:");
             for (int i = 0; i < WaveIn.DeviceCount; i++)
@@ -45,7 +30,6 @@ namespace WindowsAssistant.Services
             // You can change DeviceNumber if it’s not the default
             _waveIn = new WaveInEvent
             {
-                DeviceNumber = 0,
                 WaveFormat = new WaveFormat(_sampleRate, 16, 1),
                 BufferMilliseconds = (int)(_frameLength / (double)_sampleRate * 1000)
             };
@@ -65,9 +49,18 @@ namespace WindowsAssistant.Services
 
         public void Start()
         {
-            Console.WriteLine("Starting audio capture...");
-            _waveIn.StartRecording();
+            Console.WriteLine("Starting capture...");
+            try
+            {
+                _waveIn.StartRecording();
+                Console.WriteLine("— waveIn.StartRecording() succeeded");
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine($"!!! waveIn.StartRecording() failed: {ex}");
+            }
         }
+
 
         public void Stop()
         {
@@ -85,25 +78,11 @@ namespace WindowsAssistant.Services
             for (int i = 0; i < _frameLength; i++)
                 pcm[i] = BitConverter.ToInt16(e.Buffer, i * 2);
 
-            try
-            {
-                int result = _porcupine.Process(pcm);
-                if (result >= 0)
-                {
-                    Console.WriteLine("Porcupine detected keyword index: " + result);
-                    WakeWordDetected?.Invoke(this, EventArgs.Empty);
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.Error.WriteLine("Porcupine error: " + ex);
-            }
+            
         }
-
         public void Dispose()
         {
             _waveIn?.Dispose();
-            _porcupine?.Dispose();
         }
 
         public void StartTTS()
