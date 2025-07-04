@@ -78,7 +78,7 @@ namespace PersonaDesk.Services
             // Handle file name/path if we're waiting
             if (_state == InteractionState.AwaitingFilePath)
             {
-                var resolved = ResolveFilePath(input);
+                var resolved = ResolvePath(input,false);
                 if (resolved == null)
                 {
                     _state = InteractionState.None;
@@ -301,76 +301,9 @@ namespace PersonaDesk.Services
             return await PersonaResponse("delete a file, ask them for name or location", "Sure! You can give me the location or name and I’ll see what I can do.");
         }
 
-        private string ResolveFilePath(string input)
-        {
-            if (File.Exists(input))
-                return Path.GetFullPath(input);
-
-            var folders = new[]
-            {
-                Environment.GetFolderPath(Environment.SpecialFolder.Desktop),
-                Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
-                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Documents"),
-                Environment.GetFolderPath(Environment.SpecialFolder.MyPictures),
-                Environment.GetFolderPath(Environment.SpecialFolder.MyMusic),
-                Environment.GetFolderPath(Environment.SpecialFolder.MyVideos),
-                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads"),
-                Environment.GetFolderPath(Environment.SpecialFolder.CommonDocuments),
-                Environment.GetFolderPath(Environment.SpecialFolder.CommonPictures),
-                Environment.GetFolderPath(Environment.SpecialFolder.CommonMusic),
-                Environment.GetFolderPath(Environment.SpecialFolder.CommonVideos)
-            };
-
-            foreach (var root in folders)
-            {
-                Console.WriteLine($"[Scanning] {root} for {input}");
-
-                try
-                {
-                    var stack = new Stack<string>();
-                    stack.Push(root);
-
-                    while (stack.Count > 0)
-                    {
-                        var current = stack.Pop();
-
-                        // Check for reparse point (symbolic link)
-                        var dirInfo = new DirectoryInfo(current);
-                        if ((dirInfo.Attributes & FileAttributes.ReparsePoint) != 0)
-                        {
-                            Console.WriteLine($"[Skipping Symlink] {current}");
-                            continue;
-                        }
-
-                        // Search files in current directory
-                        foreach (var file in Directory.EnumerateFiles(current, "*", SearchOption.TopDirectoryOnly))
-                        {
-                            if (Path.GetFileName(file).Equals(input, StringComparison.OrdinalIgnoreCase))
-                                return file;
-                        }
-
-                        // Queue subdirectories
-                        foreach (var subdir in Directory.EnumerateDirectories(current))
-                        {
-                            stack.Push(subdir);
-                        }
-                    }
-                }
-                catch (UnauthorizedAccessException ex)
-                {
-                    Console.WriteLine($"[Access Denied] Skipping {root}: {ex.Message}");
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"[Error] Scanning {root}: {ex.Message}");
-                }
-            }
-
-            return null;
-        }
         private async Task<string> OpenFolderFromInput(string input)
         {
-            var path = ResolveFolderOpenPath(input);
+            var path = ResolvePath(input, true);
 
             if (path != null)
             {
@@ -400,92 +333,86 @@ namespace PersonaDesk.Services
             return words[^1];
         }
 
-        private string ResolveFolderOpenPath(string input)
+        private static readonly string[] CommonRoots = new[]
         {
-            if (Directory.Exists(input))
-                return Path.GetFullPath(input);
+            Environment.GetFolderPath(Environment.SpecialFolder.Desktop),
+            Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Documents"),
+            Environment.GetFolderPath(Environment.SpecialFolder.MyPictures),
+            Environment.GetFolderPath(Environment.SpecialFolder.MyMusic),
+            Environment.GetFolderPath(Environment.SpecialFolder.MyVideos),
+            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads"),
+            Environment.GetFolderPath(Environment.SpecialFolder.CommonDocuments),
+            Environment.GetFolderPath(Environment.SpecialFolder.CommonPictures),
+            Environment.GetFolderPath(Environment.SpecialFolder.CommonMusic),
+            Environment.GetFolderPath(Environment.SpecialFolder.CommonVideos)
+        };
 
-            var knownFolders = new Dictionary<string, Environment.SpecialFolder>(StringComparer.OrdinalIgnoreCase)
+        public static string? ResolvePath(string targetName, bool isFolder, string[]? extraExtensions = null)
+        {
+            if (string.IsNullOrWhiteSpace(targetName))
+                return null;
+
+            // Direct check
+            if (isFolder && Directory.Exists(targetName))
+                return Path.GetFullPath(targetName);
+            if (!isFolder && File.Exists(targetName))
+                return Path.GetFullPath(targetName);
+
+            foreach (var root in CommonRoots.Distinct())
             {
-                { "Desktop", Environment.SpecialFolder.Desktop },
-                { "Documents", Environment.SpecialFolder.MyDocuments },
-                { "Pictures", Environment.SpecialFolder.MyPictures },
-                { "Music", Environment.SpecialFolder.MyMusic },
-                { "Videos", Environment.SpecialFolder.MyVideos },
-                { "AppData", Environment.SpecialFolder.ApplicationData },
-                { "CommonDocuments", Environment.SpecialFolder.CommonDocuments },
-                { "CommonPictures", Environment.SpecialFolder.CommonPictures },
-                { "CommonMusic", Environment.SpecialFolder.CommonMusic },
-                { "CommonVideos", Environment.SpecialFolder.CommonVideos },
-                { "UserProfile", Environment.SpecialFolder.UserProfile },
-                { "Downloads", Environment.SpecialFolder.UserProfile }
-            };
+                var stack = new Stack<string>();
+                stack.Push(root);
 
-            if (knownFolders.TryGetValue(input, out var specialFolder))
-            {
-                var basePath = Environment.GetFolderPath(specialFolder);
-                if (input.Equals("Downloads", StringComparison.OrdinalIgnoreCase))
-                    return Path.Combine(basePath, "Downloads");
-                return basePath;
-            }
-
-            var folders = new[]
-            {
-                Environment.GetFolderPath(Environment.SpecialFolder.Desktop),
-                Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
-                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Documents"),
-                Environment.GetFolderPath(Environment.SpecialFolder.MyPictures),
-                Environment.GetFolderPath(Environment.SpecialFolder.MyMusic),
-                Environment.GetFolderPath(Environment.SpecialFolder.MyVideos),
-                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads"),
-                Environment.GetFolderPath(Environment.SpecialFolder.CommonDocuments),
-                Environment.GetFolderPath(Environment.SpecialFolder.CommonPictures),
-                Environment.GetFolderPath(Environment.SpecialFolder.CommonMusic),
-                Environment.GetFolderPath(Environment.SpecialFolder.CommonVideos)
-            };
-
-            foreach (var root in folders.Distinct()) // avoid scanning same folder twice
-            {
-                var dirsToSearch = new Queue<string>();
-                dirsToSearch.Enqueue(root);
-
-                while (dirsToSearch.Count > 0)
+                while (stack.Count > 0)
                 {
-                    var currentDir = dirsToSearch.Dequeue();
+                    var current = stack.Pop();
                     try
                     {
-                        // Check if current directory matches
-                        if (Path.GetFileName(currentDir).Equals(input, StringComparison.OrdinalIgnoreCase))
-                            return currentDir;
-
-                        // Enqueue subdirectories, skipping symlinks and reparse points
-                        foreach (var subDir in Directory.EnumerateDirectories(currentDir))
+                        var dirInfo = new DirectoryInfo(current);
+                        if (dirInfo.Attributes.HasFlag(FileAttributes.ReparsePoint))
                         {
-                            try
+                            Console.WriteLine($"[Skipping Symlink] {current}");
+                            continue;
+                        }
+
+                        if (isFolder)
+                        {
+                            if (Path.GetFileName(current).Equals(targetName, StringComparison.OrdinalIgnoreCase))
+                                return current;
+
+                            foreach (var subdir in Directory.EnumerateDirectories(current))
+                                stack.Push(subdir);
+                        }
+                        else
+                        {
+                            foreach (var file in Directory.EnumerateFiles(current, "*", SearchOption.TopDirectoryOnly))
                             {
-                                var dirInfo = new DirectoryInfo(subDir);
-                                if (!dirInfo.Attributes.HasFlag(FileAttributes.ReparsePoint))
-                                {
-                                    dirsToSearch.Enqueue(subDir);
-                                }
+                                var fileName = Path.GetFileNameWithoutExtension(file);
+                                var ext = Path.GetExtension(file);
+                                if (fileName.Equals(targetName, StringComparison.OrdinalIgnoreCase))
+                                    return file;
+
+                                if (extraExtensions != null && fileName.Equals(targetName, StringComparison.OrdinalIgnoreCase) && extraExtensions.Contains(ext, StringComparer.OrdinalIgnoreCase))
+                                    return file;
                             }
-                            catch (UnauthorizedAccessException ex)
-                            {
-                                Console.WriteLine($"[Access Denied] {subDir}: {ex.Message}");
-                            }
+
+                            foreach (var subdir in Directory.EnumerateDirectories(current))
+                                stack.Push(subdir);
                         }
                     }
                     catch (UnauthorizedAccessException ex)
                     {
-                        Console.WriteLine($"[Access Denied] {currentDir}: {ex.Message}");
+                        Console.WriteLine($"[Access Denied] {current}: {ex.Message}");
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine($"[Error] {currentDir}: {ex.Message}");
+                        Console.WriteLine($"[Error] {current}: {ex.Message}");
                     }
                 }
             }
+
             return null;
         }
     }
