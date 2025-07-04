@@ -64,7 +64,7 @@
                      AcceptsReturn="True" Height="80" Margin="0,5,0,15" TextWrapping="Wrap"/>
 
             <!-- Hotkey -->
-            <TextBlock Text="Hotkey to Open App:" Foreground="White" FontSize="16"/>
+            <TextBlock Text="Hotkey to Open App and STT:" Foreground="White" FontSize="16"/>
             <TextBox Text="{Binding Hotkey, UpdateSourceTrigger=PropertyChanged}"
                      Background="#2E2E3F" Foreground="White" BorderBrush="#555" Margin="0,5,0,15"
                      PreviewKeyDown="HotkeyTextBox_PreviewKeyDown"

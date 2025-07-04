@@ -82,8 +82,8 @@ namespace PersonaDesk.ViewModels
             Application.Current.Dispatcher.Invoke(() => OutputLog.Add(loadingMessage)); // Add on UI thread
             Console.WriteLine("Starting Persona...");
             var personaWelcome = await _commandService.PersonaResponse(
-                "they just opened the program, give a greeting and let them know you are here to open a folder, browse the web, or just chat. They can do this by either typing or saying 'Persona'.",
-                "Enter a command, or say Persona to get started. What can I help with today?"
+                "they just opened the program, give a greeting and let them know you are here to open a folder, browse the web, or just chat. They can either typing or use the hotkey found in setting for speech to text to get started'.",
+                "Enter a command, or use the hotkey found in setting for speech to text to get started. What can I help with today?"
             );
 
             Application.Current.Dispatcher.Invoke(() =>
