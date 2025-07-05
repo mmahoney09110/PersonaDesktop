@@ -118,7 +118,13 @@ namespace PersonaDesk.ViewModels
                     });
 
                     var result = await _commandService.HandleCommand(input).ConfigureAwait(false);
-                    
+
+                    audioPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Sounds", "response.wav");
+                    if (audioPath != null)
+                    {
+                        var player = new System.Media.SoundPlayer(audioPath);
+                        player.Play();
+                    }
                     Application.Current.Dispatcher.Invoke(() =>
                     {
                         OutputLog.Remove(loadingMessage);

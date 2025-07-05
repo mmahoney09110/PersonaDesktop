@@ -1,4 +1,5 @@
 ﻿using NAudio.CoreAudioApi;
+using PersonaDesk.Views;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -6,6 +7,7 @@ using System.IO;
 using System.Linq;
 using System.Speech.Synthesis;
 using System.Threading.Tasks;
+using System.Windows;
 using WindowsAssistant.Services;
 
 namespace PersonaDesk.Services
@@ -20,6 +22,7 @@ namespace PersonaDesk.Services
         private readonly string[] _commands = new[]
         {
             "open browser",
+            "search",
             "change volume to",
             "turn up volume",
             "turn down volume",
@@ -27,6 +30,7 @@ namespace PersonaDesk.Services
             "delete file",
             "open folder",
             "open file",
+            "close",
             "show help"
         };
 
@@ -199,12 +203,25 @@ namespace PersonaDesk.Services
                     FileName = "https://www.google.com",
                     UseShellExecute = true
                 }), await PersonaResponse("Open browser", "Opening browser...")),
+                "search" => await Try(() => Process.Start(new ProcessStartInfo
+                {
+                    FileName = "https://www.google.com/search?q=" + Uri.EscapeDataString(input.Replace("search", "").Trim()),
+                    UseShellExecute = true
+                }), await PersonaResponse($"search for {input}", "Searching...")),
                 "turn up volume" => await ChangeVolume(0.1f),
                 "turn down volume" => await ChangeVolume(-0.1f),
                 "empty recycle bin" => await Try(() => new WindowsInterop().EmptyRecycleBin(), await PersonaResponse("empty recycle bin", "Recycle bin emptied.")),
                 "delete file" => await StartFileDeleteFlow(),
                 "open folder" => await OpenFolderFromInput(ExtractFolderTarget(input)),
                 "open file" => await OpenFileFromInput(ExtractFileTarget(input)),
+                "close" => await Try(() => Application.Current.Dispatcher.Invoke(() =>
+                {
+                    var mainWindow = Application.Current.Windows.OfType<MainView>().FirstOrDefault();
+                    if (mainWindow != null)
+                    {
+                        mainWindow.WindowState = WindowState.Minimized;
+                    }
+                }),"Closing the app."),
                 "show help" => await PersonaResponse($"show all commands. These are: " + string.Join(", ", _commands), "Available commands: " + string.Join(", ", _commands)),
                 _ => $"Matched {bestCmd} but did not find command"
             };
@@ -246,17 +263,10 @@ namespace PersonaDesk.Services
                 Console.WriteLine($"Error: {ex.Message}");
             }
 
-            var audioPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Sounds", "response.wav");
-            if (audioPath != null)
-            {
-                var player = new System.Media.SoundPlayer(audioPath);
-                player.Play();
-            }
-
             if (_settings.SpeechEnabled) 
             { 
                 await _ttsService.GenerateSpeechAsync(result);
-                audioPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "output.wav");
+                var audioPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "output.wav");
                 if (audioPath != null)
                 {
                     var player = new System.Media.SoundPlayer(audioPath);
