@@ -1,4 +1,8 @@
-﻿<Window x:Class="PersonaDesk.Views.QuickDialog"
+﻿<!-- 
+  QuickDialog Window
+  Custom lightweight modal dialog for showing short confirmation or info messages.
+-->
+<Window x:Class="PersonaDesk.Views.QuickDialog"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         WindowStyle="None"
@@ -9,12 +13,16 @@
         SizeToContent="Height"
         ShowInTaskbar="False"
         WindowStartupLocation="CenterOwner">
+
+    <!-- Outer container with background, rounded corners, and shadow -->
     <Border Background="#2E2E3F" 
             CornerRadius="12" 
             Padding="20"
             BorderBrush="#444" 
             BorderThickness="1"
             Effect="{DynamicResource DropShadowEffect}">
+
+        <!-- Message text and OK button layout -->
         <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" MaxWidth="400">
             <TextBlock x:Name="MessageText" 
                        Text="Settings saved!"
@@ -23,6 +31,7 @@
                        TextAlignment="Center"
                        TextWrapping="Wrap"
                        Margin="0,0,0,20"/>
+
             <Button Width="80" Height="30" Content="OK" 
                     HorizontalAlignment="Center"
                     Background="#3A86FF" 

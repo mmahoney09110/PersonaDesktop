@@ -1,9 +1,9 @@
+using PersonaDesk.ViewModels;
+using System.Collections.Specialized;
+using System.IO;
 using System.Windows;
 using System.Windows.Input;
-using System.Collections.Specialized;
-using PersonaDesk.ViewModels;
 using WindowsAssistant.Services;
-using System.IO;
 
 namespace PersonaDesk.Views
 {
@@ -12,15 +12,23 @@ namespace PersonaDesk.Views
         MainViewModel _viewModel;
         private bool loadingSTT = false;
 
+        /// <summary>
+        /// Initializes the main chat window.
+        /// </summary>
         public MainView()
         {
             InitializeComponent();
             var vm = new ViewModels.MainViewModel();
             DataContext = vm;
+            // sends welcome message
             vm.Start();
-            // Auto-scroll when OutputLog changes
+            // Subscribe to auto-scroll on new messages
             vm.OutputLog.CollectionChanged += OutputLog_CollectionChanged;
         }
+
+        /// <summary>
+        /// Position window at bottom-right corner of the screen on init.
+        /// </summary>
         protected override void OnSourceInitialized(EventArgs e)
         {
             base.OnSourceInitialized(e);
@@ -30,25 +38,32 @@ namespace PersonaDesk.Views
             this.Top = desktopWorkingArea.Bottom - this.Height;
         }
 
+        /// <summary>
+        /// Scroll chat list to end when new items are added.
+        /// </summary>
         private void OutputLog_CollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
         {
-            // Only scroll when items are added
             if (e.Action == NotifyCollectionChangedAction.Add)
             {
-                // Dispatcher to ensure we’re on UI thread and after the item is rendered
                 Dispatcher.BeginInvoke(new Action(ScrollToEnd), System.Windows.Threading.DispatcherPriority.Background);
             }
         }
 
+        /// <summary>
+        /// Handle Enter key to submit message.
+        /// </summary>
         private void Input_KeyDown(object sender, KeyEventArgs e)
         {
             if (e.Key == Key.Enter)
             {
                 ((ViewModels.MainViewModel)DataContext).SubmitCommand.Execute(null);
             }
-            this.Topmost = true; // Ensure the window stays on top when input is focused
+            this.Topmost = true;
         }
 
+        /// <summary>
+        /// Helper to scroll to last message in list.
+        /// </summary>
         private void ScrollToEnd()
         {
             if (MessageList.Items.Count > 0)
@@ -59,6 +74,9 @@ namespace PersonaDesk.Views
 
         private void MessageList_Loaded(object sender, RoutedEventArgs e) => ScrollToEnd();
 
+        /// <summary>
+        /// Hide window when minimized; show tray icon instead.
+        /// </summary>
         protected override void OnStateChanged(EventArgs e)
         {
             base.OnStateChanged(e);
@@ -70,6 +88,9 @@ namespace PersonaDesk.Views
             }
         }
 
+        /// <summary>
+        /// Set up hotkey listener and speech-to-text activation.
+        /// </summary>
         private void MainWindow_Loaded(object sender, RoutedEventArgs e)
         {
             var settings = SettingsService.LoadSettings();
@@ -82,7 +103,6 @@ namespace PersonaDesk.Views
                     vm?.ShowMainWindowCommand.Execute(null);
 
                     var detector = new WakeWordDetector();
-
                     detector.SpeechRecognized += text =>
                     {
                         Application.Current.Dispatcher.Invoke(() =>
@@ -92,7 +112,6 @@ namespace PersonaDesk.Views
                             if (!string.IsNullOrWhiteSpace(text))
                             {
                                 InputBox.Text = text;
-                                //((ViewModels.MainViewModel)DataContext).SubmitCommand.Execute(null);
                             }
                             else
                             {
@@ -114,6 +133,9 @@ namespace PersonaDesk.Views
             });
         }
 
+        /// <summary>
+        /// Animate "listening" text while waiting for speech-to-text input.
+        /// </summary>
         private async void WaitingForSTT()
         {
             InputBox.Text = "listening";
@@ -125,6 +147,5 @@ namespace PersonaDesk.Views
                 await Task.Delay(1000);
             }
         }
-
     }
 }

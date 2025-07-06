@@ -1,20 +1,29 @@
-<Window x:Class="PersonaDesk.Views.MainView"
+    <!--
+    Main window for the Persona Desktop app. 
+    Defines the chat UI and settings tab, resource styles, converters, and visual effects.
+    -->
+    <Window x:Class="PersonaDesk.Views.MainView"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"    
         xmlns:conv="clr-namespace:PersonaDesk.Converter"
         xmlns:views="clr-namespace:PersonaDesk.Views"
         Title="PersonaDesktop" Height="425" Width="500"
         Background="{StaticResource BackgroundBrush}" 
         Foreground="{StaticResource ForegroundBrush}"
         Loaded="MainWindow_Loaded">
-
+        <!--
+    Declares value converters for message color, alignment, loading spinners, and visibility. 
+    Also defines visual resources like shadows and styles for scrollbars and tabs.
+        -->
     <Window.Resources>
+        <!-- Converters -->
         <conv:MessageToBubbleColorConverter x:Key="MessageToBubbleColorConverter"/>
         <conv:MessageToBubbleAlignConverter x:Key="MessageToBubbleAlignConverter"/>
         <conv:LoadingSpinnerVisibilityConverter x:Key="LoadingSpinnerVisibilityConverter"/>
         <conv:LoadingTextVisibilityConverter x:Key="LoadingTextVisibilityConverter"/>
         <conv:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
         <conv:InverseBoolToBoolConverter x:Key="InverseBoolToBoolConverter"/>
+        <!-- Shadow effect for message box-->
         <DropShadowEffect x:Key="DropShadowEffect"
                           BlurRadius="10"
                           Direction="270"
@@ -73,6 +82,9 @@
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Template">
                 <Setter.Value>
+                    <!--
+                    Customizes tab headers' appearance, including selected/unselected states and corner rounding.
+                    -->
                     <ControlTemplate TargetType="TabItem">
                         <Border x:Name="Bd"
                         Background="{TemplateBinding Background}"
@@ -98,7 +110,9 @@
         </Style>
 
     </Window.Resources>
+    <!--Tab control to go between this page and settings-->
     <TabControl Background="{StaticResource BackgroundBrush}" Foreground="#414141" BorderThickness="0">
+        <!--Chat tab has this windows content-->
         <TabItem Header="Chat">
             <Grid Margin="10">
                 <Grid.RowDefinitions>
@@ -106,7 +120,10 @@
                     <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
-                <!-- Chat Area -->
+                <!-- 
+                Displays a scrollable list of messages with each message styled as a speech bubble, 
+                supports dynamic alignment and loading indicators. 
+                -->
                 <ListBox Grid.Row="0"
                  x:Name="MessageList"
                  ItemsSource="{Binding OutputLog}" 
@@ -175,7 +192,10 @@
                     </ListBox.ItemTemplate>
                 </ListBox>
 
-                <!-- Input Field with Embedded Send Button -->
+                <!-- 
+                Contains the text input box for user messages and a stylized "send" button 
+                with hover/press animations. 
+                -->
                 <Border Grid.Row="1"
                 Background="#2E2E3F"
                 CornerRadius="20"
@@ -188,26 +208,26 @@
                         </Grid.ColumnDefinitions>
 
                         <TextBox x:Name="InputBox"
-                 Grid.Column="0"
-                 Text="{Binding InputText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                 IsEnabled="{Binding IsLoading, Converter={StaticResource InverseBoolToBoolConverter}}"
-                 KeyDown="Input_KeyDown"
-                 Background="#2E2E3F"
-                 BorderThickness="0"
-                 Foreground="White"
-                 FontSize="14"
-                 Padding="10,5"
-                 VerticalContentAlignment="Center"/>
+                         Grid.Column="0"
+                         Text="{Binding InputText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                         IsEnabled="{Binding IsLoading, Converter={StaticResource InverseBoolToBoolConverter}}"
+                         KeyDown="Input_KeyDown"
+                         Background="#2E2E3F"
+                         BorderThickness="0"
+                         Foreground="White"
+                         FontSize="14"
+                         Padding="10,5"
+                         VerticalContentAlignment="Center"/>
 
                         <Button
-                    Command="{Binding SubmitCommand}"
-                    IsEnabled="{Binding IsLoading, Converter={StaticResource InverseBoolToBoolConverter}}"
-                    Background="Transparent"
-                    BorderThickness="0"
-                    Padding="10"
-                    ToolTip="Send"
-                    Margin="28,0,0,0"
-                    Grid.Column="1">
+                        Command="{Binding SubmitCommand}"
+                        IsEnabled="{Binding IsLoading, Converter={StaticResource InverseBoolToBoolConverter}}"
+                        Background="Transparent"
+                        BorderThickness="0"
+                        Padding="10"
+                        ToolTip="Send"
+                        Margin="28,0,0,0"
+                        Grid.Column="1">
 
                             <Button.Style>
                                 <Style TargetType="Button">
@@ -245,11 +265,15 @@
                         </Button>
                     </Grid>
                 </Border>
-
+                
+                <!--
+                Displays a semi-transparent full-window overlay with a spinner and 
+                status text while background operations run.
+                -->
                 <Grid x:Name="LoadingOverlay"
-              Background="#88000000"
-              Visibility="{Binding IsLoading, Converter={StaticResource BoolToVisibilityConverter}}"
-              Panel.ZIndex="10">
+                  Background="#88000000"
+                  Visibility="{Binding IsLoading, Converter={StaticResource BoolToVisibilityConverter}}"
+                  Panel.ZIndex="10">
                     <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Orientation="Vertical" >
                         <Ellipse Width="30" Height="30" Stroke="White" StrokeThickness="3" StrokeDashArray="2 2">
                             <Ellipse.RenderTransform>
@@ -274,6 +298,7 @@
                 </Grid>
             </Grid>
         </TabItem>
+        <!--Settings tab hosts a separate user control for adjusting app settings.-->
         <TabItem Header="Settings">
             <views:SettingsPage />
         </TabItem>

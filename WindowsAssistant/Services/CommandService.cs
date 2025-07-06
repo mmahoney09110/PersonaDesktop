@@ -251,6 +251,7 @@ namespace PersonaDesk.Services
                     {
                         userMessage += $"{msg.Role}: {msg.Content}\n";
                     }
+                    userMessage += "!!!End of Message History!!!";
                 }
 
                 userMessage += $"\nThe user request is {command}";
