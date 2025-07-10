@@ -31,7 +31,7 @@ namespace PersonaDesk
         protected override async void OnStartup(StartupEventArgs e)
         {
             // Create console window for debugging/logging. This is optional and can be removed in production.
-            AllocConsole();
+            //AllocConsole();
 
             base.OnStartup(e);
 
