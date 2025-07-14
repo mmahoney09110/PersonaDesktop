@@ -1,6 +1,7 @@
 ﻿using Hardcodet.Wpf.TaskbarNotification; // For system tray icon support
 using PersonaDesk.ViewModels;
 using PersonaDesk.Views;
+using System.IO;
 using System.Net.Http;
 using System.Runtime.InteropServices;
 using System.Windows;
@@ -99,7 +100,20 @@ namespace PersonaDesk
             TrayIcon.Dispose();
             EmbeddingService?.Dispose();
             HotkeyService.UnregisterHotkey(Application.Current.MainWindow);
-            Console.WriteLine("Embedding service stopped.");
+            Console.WriteLine("Embedding service stopped. Cleaning up temp files.");
+            var tempPath = Path.GetTempPath();
+            foreach (var dir in Directory.EnumerateDirectories(tempPath, "_MEI*"))
+            {
+                try
+                {
+                    Directory.Delete(dir, true);
+                    Console.WriteLine($"Deleted leftover temp folder: {dir}");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Could not delete {dir}: {ex.Message}");
+                }
+            }
 
             base.OnExit(e);
         }
